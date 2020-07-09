@@ -7,14 +7,16 @@ const debug = require('debug')('app');
 
 // Load modules from inside the application
 const config = require('./config/config');
+// Routers are requried
+const boardRouter = require('./routes/boardRoutes');
 
 // Create the web server
 const app = express();
 // Configuration and middleware
 app.use(bodyParser.json());
 
-// Create a hello world route
-app.get('/', (req, res) => res.send('Hello World!'));
+// Create our routes
+app.use('/api/boards', boardRouter);
 
 // Start the application as per the configuration settings
 app.listen(config.application.port, () =>
