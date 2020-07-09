@@ -6,11 +6,11 @@ const boardsController = require('../controllers/boardsController');
 const authCheck = require('../auth/authCheck');
 
 // Create a router
-const boardRouter = express.Router();
+const boardsRouter = express.Router();
 
 // Secure all of these routes behind the auth check
-boardRouter.use(authCheck);
+boardsRouter.use(authCheck);
 // Map all of the routes to controller actions
-boardRouter.get('/', boardsController.getAll);
+boardsRouter.get('/', boardsController.getAll);
 
-module.exports = boardRouter;
+module.exports = boardsRouter;

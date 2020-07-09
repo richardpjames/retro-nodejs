@@ -4,21 +4,35 @@ const express = require('express');
 const bodyParser = require('body-parser');
 // Debug allows the output of debug messages in development/production depending on environment variables
 const debug = require('debug')('app');
-
 // Load modules from inside the application
 const config = require('./config/config');
+// Database utlities
+const mongo = require('./db/mongo');
 // Routers are requried
-const boardRouter = require('./routes/boardRoutes');
+const boardsRouter = require('./routes/boardsRoutes');
 
-// Create the web server
-const app = express();
-// Configuration and middleware
-app.use(bodyParser.json());
+const startup = async () => {
+  // First connect to the database
+  try {
+    await mongo.connectToServer();
+  } catch (error) {
+    debug(error);
+  }
 
-// Create our routes
-app.use('/api/boards', boardRouter);
+  // Then create the web server
+  const app = express();
+  // Configuration and middleware
+  app.use(bodyParser.json());
 
-// Start the application as per the configuration settings
-app.listen(config.application.port, () =>
-  debug(`Example app listening at http://localhost:${config.application.port}`),
-);
+  // Create our routes
+  app.use('/api/boards', boardsRouter);
+
+  // Start the application as per the configuration settings
+  app.listen(config.application.port, () =>
+    debug(
+      `Example app listening at http://localhost:${config.application.port}`,
+    ),
+  );
+};
+
+startup();
