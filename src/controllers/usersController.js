@@ -13,7 +13,7 @@ module.exports = {
   create: async (req, res) => {
     const auth0data = req.body;
     const user = {
-      auth0id: auth0data.user.id,
+      auth0id: auth0data.id,
     };
     // Try and save the user (this will also validate the data)
     try {
