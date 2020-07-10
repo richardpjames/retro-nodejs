@@ -2,7 +2,7 @@
 const boardsService = require('../services/boardsService');
 
 // The controller for boards
-const boardsController = {
+module.exports = {
   // Get all simply returns all boards from the database
   getAll: async (req, res) => {
     const boards = await boardsService.getAll();
@@ -27,5 +27,3 @@ const boardsController = {
     }
   },
 };
-
-module.exports = boardsController;
