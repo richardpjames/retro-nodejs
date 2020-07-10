@@ -25,4 +25,8 @@ module.exports = {
       throw errors.error.details;
     }
   },
+  // Remove a board from the database
+  remove: async (boardId) => {
+    return db.collection('boards').remove({ _id: boardId });
+  }
 };
