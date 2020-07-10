@@ -23,11 +23,11 @@ mongo.connectToServer(() => {
   // eslint-disable-next-line global-require
   const boardsRouter = require('./routes/boardsRoutes');
   // eslint-disable-next-line global-require
-  const usersRouter = require('./routes/usersRoutes');
+  // const usersRouter = require('./routes/usersRoutes');
 
   // Create our routes
   app.use('/api/boards', boardsRouter);
-  app.use('/api/users', usersRouter);
+  // app.use('/api/users', usersRouter);
 
   // Start the application as per the configuration settings
   app.listen(config.application.port, () =>
