@@ -15,6 +15,7 @@ const mongo = {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       },
+      // Callback from the connection to database
       async (err, client) => {
         // Connect to the retrospectacle database
         db = client.db();
