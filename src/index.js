@@ -1,5 +1,7 @@
 // Import express to create our web server
 const express = require('express');
+// For settings cors settings
+const cors = require('cors');
 // Body parser takes json objects from the body and adds them to the request
 const bodyParser = require('body-parser');
 // Debug allows the output of debug messages in development/production depending on environment variables
@@ -12,6 +14,8 @@ const mongo = require('./db/mongo');
 mongo.connectToServer(() => {
   // Then create the web server
   const app = express();
+  // Set up CORS settings
+  app.use(cors());
   // Configuration and middleware
   app.use(bodyParser.json());
 
