@@ -1,0 +1,23 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Out
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Build and Deploy
+        uses: idoberko2/dokku-deploy-github-action@v1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          dokku-host: ${{ secrets.DOKKU_HOST }}
+          app-name: ${{ secrets.DOKKU_APP }}

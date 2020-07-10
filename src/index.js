@@ -8,31 +8,22 @@ const debug = require('debug')('app');
 const config = require('./config/config');
 // Database utlities
 const mongo = require('./db/mongo');
-// Routers are requried
-const boardsRouter = require('./routes/boardsRoutes');
 
-const startup = async () => {
-  // First connect to the database
-  try {
-    await mongo.connectToServer();
-  } catch (error) {
-    debug(error);
-  }
-
+mongo.connectToServer(() => {
   // Then create the web server
   const app = express();
   // Configuration and middleware
   app.use(bodyParser.json());
+
+  // Routers are requried after we have connected to the db so allow require here
+  // eslint-disable-next-line global-require
+  const boardsRouter = require('./routes/boardsRoutes');
 
   // Create our routes
   app.use('/api/boards', boardsRouter);
 
   // Start the application as per the configuration settings
   app.listen(config.application.port, () =>
-    debug(
-      `Example app listening at http://localhost:${config.application.port}`,
-    ),
+    debug(`Server listening at http://localhost:${config.application.port}`),
   );
-};
-
-startup();
+});
