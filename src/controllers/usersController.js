@@ -16,12 +16,6 @@ module.exports = {
   // For the creation of new users
   create: async (req, res) => {
     try {
-      console.log('Body----------');
-      console.log(req.body);
-      console.log('Config----------');
-      console.log(config.auth0.management);
-      console.log('Token----------');
-      console.log(req.managementToken);
       const auth0user = await axios.get(
         `${config.auth0.management.audience}users/${req.body.id}`,
         {
