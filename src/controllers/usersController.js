@@ -15,24 +15,30 @@ module.exports = {
   },
   // For the creation of new users
   create: async (req, res) => {
-    const auth0user = await axios.get(
-      `${config.auth0.management.audience}users/${req.body.user.id}`,
-      {
-        headers: { Authorization: `Bearer ${req.managementToken}` },
-      },
-    );
-    // If we didn't find the data then return 400
-    if (!auth0user.data) {
-      res.status(400);
-      return res.send();
-    }
-    const user = {
-      auth0id: auth0user.data.user_id,
-      nickname: auth0user.data.nickname || '',
-      picture: auth0user.data.picture || '',
-    };
-    // Try and save the user (this will also validate the data)
     try {
+      console.log('Body----------');
+      console.log(req.body);
+      console.log('Config----------');
+      console.log(config.auth0.management);
+      console.log('Token----------');
+      console.log(req.managementToken);
+      const auth0user = await axios.get(
+        `${config.auth0.management.audience}users/${req.body.id}`,
+        {
+          headers: { Authorization: `Bearer ${req.managementToken}` },
+        },
+      );
+      // If we didn't find the data then return 400
+      if (!auth0user.data) {
+        res.status(400);
+        return res.send();
+      }
+      const user = {
+        auth0id: auth0user.data.user_id,
+        nickname: auth0user.data.nickname || '',
+        picture: auth0user.data.picture || '',
+      };
+      // Try and save the user (this will also validate the data)
       await usersService.create(user);
       res.status(200);
       return res.send();
