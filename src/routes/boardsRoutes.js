@@ -12,6 +12,8 @@ const boardsRouter = express.Router();
 boardsRouter.use(authCheck);
 // Map all of the routes to controller actions
 boardsRouter.get('/', boardsController.getAll);
+boardsRouter.get('/:boardId', boardsController.get);
 boardsRouter.post('/', boardsController.create);
+boardsRouter.delete('/:boardId', boardsController.remove);
 
 module.exports = boardsRouter;

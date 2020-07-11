@@ -9,6 +9,13 @@ module.exports = {
   auth0: {
     issuer: process.env.AUTH0_ISSUER,
     audience: process.env.AUTH0_AUDIENCE,
-    jwks_uri: process.env.AUTH0_JWKS_URI,
+    jwksUri: process.env.AUTH0_JWKS_URI,
+    management: {
+      clientId: process.env.AUTH0_MGMT_CLIENT_ID,
+      clientSecret: process.env.AUTH0_MGMT_CLIENT_SECRET,
+      audience: process.env.AUTH0_MGMT_AUDIENCE,
+      grantType: process.env.AUTH0_MGMT_GRANT_TYPE,
+      tokenUrl: process.env.AUTH0_MGMT_TOKEN_URL,
+    },
   },
 };

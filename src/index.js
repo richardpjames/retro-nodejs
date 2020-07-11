@@ -1,3 +1,4 @@
+/* eslint global-require:0 */
 // Import express to create our web server
 const express = require('express');
 // For settings cors settings
@@ -10,6 +11,8 @@ const debug = require('debug')('app');
 const config = require('./config/config');
 // Database utlities
 const mongo = require('./db/mongo');
+// Middleware
+const auth0Token = require('./middleware/auth0Token');
 
 mongo.connectToServer(() => {
   // Then create the web server
@@ -18,19 +21,18 @@ mongo.connectToServer(() => {
   app.use(cors());
   // Configuration and middleware
   app.use(bodyParser.json());
+  // Get the auth0 management token
+  app.use(auth0Token);
 
   // Routers are requried after we have connected to the db so allow require here
-  // eslint-disable-next-line global-require
   const boardsRouter = require('./routes/boardsRoutes');
-  // eslint-disable-next-line global-require
   const templatesRouter = require('./routes/templatesRoutes');
-  // eslint-disable-next-line global-require
-  // const usersRouter = require('./routes/usersRoutes');
+  const usersRouter = require('./routes/usersRoutes');
 
   // Create our routes
   app.use('/api/boards', boardsRouter);
   app.use('/api/templates', templatesRouter);
-  // app.use('/api/users', usersRouter);
+  app.use('/api/users', usersRouter);
 
   // Start the application as per the configuration settings
   app.listen(config.application.port, () =>

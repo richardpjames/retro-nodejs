@@ -11,7 +11,7 @@ module.exports = jwt({
     cache: true,
     rateLimit: true,
     jwksRequestsPerMinute: 5,
-    jwksUri: config.auth0.jwks_uri,
+    jwksUri: config.auth0.jwksUri,
   }),
   audience: config.auth0.audience,
   issuer: config.auth0.issuer,
