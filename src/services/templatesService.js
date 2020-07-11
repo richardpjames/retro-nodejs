@@ -45,6 +45,6 @@ module.exports = {
   },
   // Remove a template from the database
   remove: async (templateId) => {
-    return db.collection('templates').remove({ _id: ObjectId(templateId) });
+    return db.collection('templates').deleteOne({ _id: ObjectId(templateId) });
   },
 };

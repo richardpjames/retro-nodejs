@@ -45,6 +45,6 @@ module.exports = {
   },
   // Remove a user from the database
   remove: async (userId) => {
-    return db.collection('users').remove({ _id: ObjectId(userId) });
+    return db.collection('users').deleteOne({ _id: ObjectId(userId) });
   },
 };

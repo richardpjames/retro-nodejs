@@ -45,6 +45,6 @@ module.exports = {
   },
   // Remove a column from the database
   remove: async (columnId) => {
-    return db.collection('columns').remove({ _id: ObjectId(columnId) });
+    return db.collection('columns').deleteOne({ _id: ObjectId(columnId) });
   },
 };

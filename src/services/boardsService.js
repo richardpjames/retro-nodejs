@@ -45,6 +45,6 @@ module.exports = {
   },
   // Remove a board from the database
   remove: async (boardId) => {
-    return db.collection('boards').remove({ _id: ObjectId(boardId) });
+    return db.collection('boards').deleteOne({ _id: ObjectId(boardId) });
   },
 };

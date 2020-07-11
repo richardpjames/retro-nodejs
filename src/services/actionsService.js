@@ -45,6 +45,6 @@ module.exports = {
   },
   // Remove a action from the database
   remove: async (actionId) => {
-    return db.collection('actions').remove({ _id: ObjectId(actionId) });
+    return db.collection('actions').deleteOne({ _id: ObjectId(actionId) });
   },
 };

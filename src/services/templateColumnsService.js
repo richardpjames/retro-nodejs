@@ -49,6 +49,6 @@ module.exports = {
   remove: async (templateColumnId) => {
     return db
       .collection('templateColumns')
-      .remove({ _id: ObjectId(templateColumnId) });
+      .deleteOne({ _id: ObjectId(templateColumnId) });
   },
 };

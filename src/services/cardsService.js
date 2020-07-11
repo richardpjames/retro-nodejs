@@ -45,6 +45,6 @@ module.exports = {
   },
   // Remove a card from the database
   remove: async (cardId) => {
-    return db.collection('cards').remove({ _id: ObjectId(cardId) });
+    return db.collection('cards').deleteOne({ _id: ObjectId(cardId) });
   },
 };

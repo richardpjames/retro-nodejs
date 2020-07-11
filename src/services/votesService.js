@@ -45,6 +45,6 @@ module.exports = {
   },
   // Remove a vote from the database
   remove: async (voteId) => {
-    return db.collection('votes').remove({ _id: ObjectId(voteId) });
+    return db.collection('votes').deleteOne({ _id: ObjectId(voteId) });
   },
 };
