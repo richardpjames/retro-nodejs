@@ -1,3 +1,5 @@
+// For generating object Ids
+const { ObjectId } = require('mongodb');
 // Connection to the database
 const mongo = require('../db/mongo');
 // The template model
@@ -12,7 +14,7 @@ module.exports = {
   },
   // Retrieve a template using its ID
   getById: async (templateId) => {
-    return db.collection('templates').findOne({ _id: templateId });
+    return db.collection('templates').findOne({ _id: ObjectId(templateId) });
   },
   query: async (query) => {
     return db.collection('templates').find(query);
@@ -36,13 +38,13 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('templates')
-        .findOneAndUpdate({ _id: templateId }, template);
+        .findOneAndUpdate({ _id: ObjectId(templateId) }, template);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a template from the database
   remove: async (templateId) => {
-    return db.collection('templates').remove({ _id: templateId });
+    return db.collection('templates').remove({ _id: ObjectId(templateId) });
   },
 };

@@ -1,3 +1,5 @@
+// For generating object Ids
+const { ObjectId } = require('mongodb');
 // Connection to the database
 const mongo = require('../db/mongo');
 // The vote model
@@ -12,7 +14,7 @@ module.exports = {
   },
   // Retrieve a vote using its ID
   getById: async (voteId) => {
-    return db.collection('votes').findOne({ _id: voteId });
+    return db.collection('votes').findOne({ _id: ObjectId(voteId) });
   },
   query: async (query) => {
     return db.collection('votes').find(query);
@@ -34,13 +36,15 @@ module.exports = {
     const errors = voteModel.validate(vote);
     // If no validation errors then update the vote
     if (!errors.error) {
-      await db.collection('votes').findOneAndUpdate({ _id: voteId }, vote);
+      await db
+        .collection('votes')
+        .findOneAndUpdate({ _id: ObjectId(voteId) }, vote);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a vote from the database
   remove: async (voteId) => {
-    return db.collection('votes').remove({ _id: voteId });
+    return db.collection('votes').remove({ _id: ObjectId(voteId) });
   },
 };

@@ -9,5 +9,6 @@ const usersRouter = express.Router();
 // Map all of the routes to controller actions
 usersRouter.get('/', usersController.getAll);
 usersRouter.post('/', usersController.create);
+usersRouter.delete('/:userId', usersController.remove);
 
 module.exports = usersRouter;

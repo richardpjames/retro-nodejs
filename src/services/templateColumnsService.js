@@ -1,3 +1,5 @@
+// For generating object Ids
+const { ObjectId } = require('mongodb');
 // Connection to the database
 const mongo = require('../db/mongo');
 // The templateColumn model
@@ -12,7 +14,9 @@ module.exports = {
   },
   // Retrieve a templateColumn using its ID
   getById: async (templateColumnId) => {
-    return db.collection('templateColumns').findOne({ _id: templateColumnId });
+    return db
+      .collection('templateColumns')
+      .findOne({ _id: ObjectId(templateColumnId) });
   },
   query: async (query) => {
     return db.collection('templateColumns').find(query);
@@ -36,13 +40,15 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('templateColumns')
-        .findOneAndUpdate({ _id: templateColumnId }, templateColumn);
+        .findOneAndUpdate({ _id: ObjectId(templateColumnId) }, templateColumn);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a templateColumn from the database
   remove: async (templateColumnId) => {
-    return db.collection('templateColumns').remove({ _id: templateColumnId });
+    return db
+      .collection('templateColumns')
+      .remove({ _id: ObjectId(templateColumnId) });
   },
 };

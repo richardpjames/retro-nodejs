@@ -1,3 +1,5 @@
+// For generating object Ids
+const { ObjectId } = require('mongodb');
 // Connection to the database
 const mongo = require('../db/mongo');
 // The action model
@@ -12,7 +14,7 @@ module.exports = {
   },
   // Retrieve a action using its ID
   getById: async (actionId) => {
-    return db.collection('actions').findOne({ _id: actionId });
+    return db.collection('actions').findOne({ _id: ObjectId(actionId) });
   },
   query: async (query) => {
     return db.collection('actions').find(query);
@@ -36,13 +38,13 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('actions')
-        .findOneAndUpdate({ _id: actionId }, action);
+        .findOneAndUpdate({ _id: ObjectId(actionId) }, action);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a action from the database
   remove: async (actionId) => {
-    return db.collection('actions').remove({ _id: actionId });
+    return db.collection('actions').remove({ _id: ObjectId(actionId) });
   },
 };

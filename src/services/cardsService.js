@@ -1,3 +1,5 @@
+// For generating object Ids
+const { ObjectId } = require('mongodb');
 // Connection to the database
 const mongo = require('../db/mongo');
 // The card model
@@ -12,7 +14,7 @@ module.exports = {
   },
   // Retrieve a card using its ID
   getById: async (cardId) => {
-    return db.collection('cards').findOne({ _id: cardId });
+    return db.collection('cards').findOne({ _id: ObjectId(cardId) });
   },
   query: async (query) => {
     return db.collection('cards').find(query);
@@ -34,13 +36,15 @@ module.exports = {
     const errors = cardModel.validate(card);
     // If no validation errors then update the card
     if (!errors.error) {
-      await db.collection('cards').findOneAndUpdate({ _id: cardId }, card);
+      await db
+        .collection('cards')
+        .findOneAndUpdate({ _id: ObjectId(cardId) }, card);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a card from the database
   remove: async (cardId) => {
-    return db.collection('cards').remove({ _id: cardId });
+    return db.collection('cards').remove({ _id: ObjectId(cardId) });
   },
 };

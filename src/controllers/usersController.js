@@ -41,4 +41,9 @@ module.exports = {
       return res.send(error);
     }
   },
+  remove: async (req, res) => {
+    await usersService.remove(req.params.userId);
+    res.status(204);
+    return res.send();
+  },
 };

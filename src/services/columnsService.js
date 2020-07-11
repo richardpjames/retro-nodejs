@@ -1,3 +1,5 @@
+// For generating object Ids
+const { ObjectId } = require('mongodb');
 // Connection to the database
 const mongo = require('../db/mongo');
 // The column model
@@ -12,7 +14,7 @@ module.exports = {
   },
   // Retrieve a column using its ID
   getById: async (columnId) => {
-    return db.collection('columns').findOne({ _id: columnId });
+    return db.collection('columns').findOne({ _id: ObjectId(columnId) });
   },
   query: async (query) => {
     return db.collection('columns').find(query);
@@ -36,13 +38,13 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('columns')
-        .findOneAndUpdate({ _id: columnId }, column);
+        .findOneAndUpdate({ _id: ObjectId(columnId) }, column);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a column from the database
   remove: async (columnId) => {
-    return db.collection('columns').remove({ _id: columnId });
+    return db.collection('columns').remove({ _id: ObjectId(columnId) });
   },
 };
