@@ -16,7 +16,7 @@ module.exports = {
   // For the creation of new users
   create: async (req, res) => {
     const auth0user = await axios.get(
-      `${config.auth0.management.audience}users/${req.body.id}`,
+      `${config.auth0.management.audience}users/${req.body.user.id}`,
       {
         headers: { Authorization: `Bearer ${req.managementToken}` },
       },
