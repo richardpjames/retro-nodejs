@@ -43,6 +43,7 @@ module.exports = {
       res.status(200);
       return res.send();
     } catch (error) {
+      console.log(error);
       res.status(400);
       return res.send(error);
     }
