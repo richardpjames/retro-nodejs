@@ -5,6 +5,7 @@ module.exports = {
   },
   database: {
     url: process.env.MONGO_URL || 'mongodb://localhost:27017',
+    redis: process.env.REDIS_URL || 'redis://localhost:6379',
   },
   auth0: {
     issuer: process.env.AUTH0_ISSUER,

@@ -4,6 +4,7 @@ const express = require('express');
 const templatesController = require('../controllers/templatesController');
 // This is for authentication
 const authCheck = require('../auth/authCheck');
+const permissionCheck = require('../auth/permissionCheck');
 
 // Create a router
 const templatesRouter = express.Router();
@@ -12,6 +13,11 @@ const templatesRouter = express.Router();
 templatesRouter.use(authCheck);
 // Map all of the routes to controller actions
 templatesRouter.get('/', templatesController.getAll);
-templatesRouter.post('/', templatesController.create);
+// This particular route needs a permissions check (only admins can amend templates)
+templatesRouter.post(
+  '/',
+  permissionCheck('create:templates'),
+  templatesController.create,
+);
 
 module.exports = templatesRouter;
