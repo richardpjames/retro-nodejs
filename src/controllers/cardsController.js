@@ -37,14 +37,9 @@ module.exports = {
   // For the creation of new cards
   create: async (req, res) => {
     const card = req.body;
-    // Find the existing cards for this column
-    const cards = await cardsService.query({
-      columnId: ObjectId(req.params.columnId),
-    });
     // Set the created time
     card.created = Date.now();
     card.userId = req.user.user_id;
-    card.order = cards.length;
     card.boardId = ObjectId(req.params.boardId);
     card.columnId = ObjectId(req.params.columnId);
     // Try and save the template (this will also validate the data)
@@ -85,69 +80,6 @@ module.exports = {
     try {
       // Update the card
       await cardsService.update(req.params.cardId, updatedCard);
-
-      // Check to see if the card has moved position (if so, we need to move
-      // other cards around it as well).
-      if (
-        updatedCard.order !== originalCard.order ||
-        !updatedCard.columnId.equals(originalCard.columnId)
-      ) {
-        let affectedCards = [];
-        // If the card has only moved position, then this is easier
-        if (updatedCard.columnId.equals(originalCard.columnId)) {
-          // Find cards below the original position (they will be moved up by one)
-          affectedCards = await cardsService.query({
-            _id: { $ne: ObjectID(req.params.cardId) },
-            columnId: updatedCard.columnId,
-            order: { $gt: originalCard.order },
-          });
-          await Promise.all(
-            affectedCards.map(async (affectedCard) => {
-              affectedCard.order -= 1;
-              await cardsService.update(affectedCard._id, affectedCard);
-            }),
-          );
-          // Next we need to deal with cards above the new position (they will be moved down by one)
-          affectedCards = await cardsService.query({
-            _id: { $ne: ObjectID(req.params.cardId) },
-            columnId: updatedCard.columnId,
-            order: { $gte: updatedCard.order },
-          });
-          await Promise.all(
-            affectedCards.map(async (affectedCard) => {
-              affectedCard.order += 1;
-              await cardsService.update(affectedCard._id, affectedCard);
-            }),
-          );
-        }
-        // Otherwise we need to move cards in the originating and new column
-        else {
-          // Move up the cards which are on the original column to fill in the gap
-          affectedCards = await cardsService.query({
-            _id: { $ne: ObjectID(req.params.cardId) },
-            columnId: originalCard.columnId,
-            order: { $gt: originalCard.order },
-          });
-          await Promise.all(
-            affectedCards.map(async (affectedCard) => {
-              affectedCard.order -= 1;
-              await cardsService.update(affectedCard._id, affectedCard);
-            }),
-          );
-          // Move down the cards in the new column to make a gap
-          affectedCards = await cardsService.query({
-            _id: { $ne: ObjectID(req.params.cardId) },
-            columnId: updatedCard.columnId,
-            order: { $gte: updatedCard.order },
-          });
-          await Promise.all(
-            affectedCards.map(async (affectedCard) => {
-              affectedCard.order += 1;
-              await cardsService.update(affectedCard._id, affectedCard);
-            }),
-          );
-        }
-      }
       // After all affected cards are moved we can return the updated card
       res.status(200);
       return res.send(updatedCard);

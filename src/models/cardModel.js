@@ -5,7 +5,7 @@ const joi = require('joi');
 module.exports = joi.object().keys({
   _id: joi.object(),
   text: joi.string().required(),
-  order: joi.number().required(),
+  rank: joi.string().required(),
   created: joi.date().required(),
   userId: joi.string().required(),
   columnId: joi.object().required(),

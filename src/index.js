@@ -1,6 +1,10 @@
 /* eslint global-require:0 */
 // Import express to create our web server
 const express = require('express');
+// Http server
+const http = require('http');
+// Socket.io for realtime
+const socketio = require('socket.io');
 // For settings cors settings
 const cors = require('cors');
 // Body parser takes json objects from the body and adds them to the request
@@ -20,6 +24,7 @@ mongo.connectToServer(() => {
   redis.connectToServer(() => {
     // Then create the web server
     const app = express();
+
     // Set up CORS settings
     app.use(cors());
     // Configuration and middleware
@@ -31,8 +36,11 @@ mongo.connectToServer(() => {
     const router = require('./routes/routes');
     app.use(router);
 
+    // Add express and socket.io to the http server
+    const server = http.createServer(app);
+    const io = socketio(server);
     // Start the application as per the configuration settings
-    app.listen(config.application.port, () =>
+    server.listen(config.application.port, () =>
       debug(`Server listening at http://localhost:${config.application.port}`),
     );
   });
