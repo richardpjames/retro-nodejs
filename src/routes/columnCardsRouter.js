@@ -13,6 +13,7 @@ columnCardsRouter.use(authCheck);
 // Routes
 columnCardsRouter.get('/', cardsController.getAll);
 columnCardsRouter.post('/', cardsController.create);
+columnCardsRouter.put('/:cardId', cardsController.update);
 columnCardsRouter.delete('/:cardId', cardsController.remove);
 
 module.exports = columnCardsRouter;

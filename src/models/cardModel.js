@@ -3,6 +3,7 @@ const joi = require('joi');
 
 // Export the joi model
 module.exports = joi.object().keys({
+  _id: joi.object(),
   text: joi.string().required(),
   order: joi.number().required(),
   created: joi.date().required(),

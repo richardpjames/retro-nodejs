@@ -1,5 +1,5 @@
 // Use the templatesService for datbase operations
-const { ObjectId } = require('mongodb');
+const { ObjectId, ObjectID } = require('mongodb');
 
 // Services for data
 const cardsService = require('../services/cardsService');
@@ -54,6 +54,104 @@ module.exports = {
       card.nickName = req.user.nickname;
       card.picture = req.user.picture;
       return res.send(card);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
+  update: async (req, res) => {
+    // Find the new card sent in the request and the original as we need to compare
+    const updatedCard = req.body;
+    const originalCard = await cardsService.getById(req.params.cardId);
+
+    // Changing the owner of the card is not allowed
+    if (updatedCard.userId !== originalCard.userId) {
+      res.status(400);
+      return res.send();
+    }
+    // Changing the text of the card is not allowed unless you are the owner
+    if (
+      originalCard.userId !== req.user.user_id &&
+      updatedCard.text !== originalCard.text
+    ) {
+      res.status(400);
+      return res.send();
+    }
+
+    // If allowed uperation then convert strings to object ids
+    updatedCard._id = ObjectID(updatedCard._id);
+    updatedCard.columnId = ObjectID(updatedCard.columnId);
+    updatedCard.boardId = ObjectID(updatedCard.boardId);
+    try {
+      // Update the card
+      await cardsService.update(req.params.cardId, updatedCard);
+
+      // Check to see if the card has moved position (if so, we need to move
+      // other cards around it as well).
+      if (
+        updatedCard.order !== originalCard.order ||
+        !updatedCard.columnId.equals(originalCard.columnId)
+      ) {
+        let affectedCards = [];
+        // If the card has only moved position, then this is easier
+        if (updatedCard.columnId.equals(originalCard.columnId)) {
+          // Find cards below the original position (they will be moved up by one)
+          affectedCards = await cardsService.query({
+            _id: { $ne: ObjectID(req.params.cardId) },
+            columnId: updatedCard.columnId,
+            order: { $gt: originalCard.order },
+          });
+          await Promise.all(
+            affectedCards.map(async (affectedCard) => {
+              affectedCard.order -= 1;
+              await cardsService.update(affectedCard._id, affectedCard);
+            }),
+          );
+          // Next we need to deal with cards above the new position (they will be moved down by one)
+          affectedCards = await cardsService.query({
+            _id: { $ne: ObjectID(req.params.cardId) },
+            columnId: updatedCard.columnId,
+            order: { $gte: updatedCard.order },
+          });
+          await Promise.all(
+            affectedCards.map(async (affectedCard) => {
+              affectedCard.order += 1;
+              await cardsService.update(affectedCard._id, affectedCard);
+            }),
+          );
+        }
+        // Otherwise we need to move cards in the originating and new column
+        else {
+          // Move up the cards which are on the original column to fill in the gap
+          affectedCards = await cardsService.query({
+            _id: { $ne: ObjectID(req.params.cardId) },
+            columnId: originalCard.columnId,
+            order: { $gt: originalCard.order },
+          });
+          await Promise.all(
+            affectedCards.map(async (affectedCard) => {
+              affectedCard.order -= 1;
+              await cardsService.update(affectedCard._id, affectedCard);
+            }),
+          );
+          // Move down the cards in the new column to make a gap
+          affectedCards = await cardsService.query({
+            _id: { $ne: ObjectID(req.params.cardId) },
+            columnId: updatedCard.columnId,
+            order: { $gte: updatedCard.order },
+          });
+          await Promise.all(
+            affectedCards.map(async (affectedCard) => {
+              affectedCard.order += 1;
+              await cardsService.update(affectedCard._id, affectedCard);
+            }),
+          );
+        }
+      }
+      // After all affected cards are moved we can return the updated card
+      res.status(200);
+      return res.send(updatedCard);
+      // Return any errors back to the user
     } catch (error) {
       res.status(400);
       return res.send(error);
