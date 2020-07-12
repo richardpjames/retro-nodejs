@@ -17,7 +17,7 @@ module.exports = {
     return db.collection('cards').findOne({ _id: ObjectId(cardId) });
   },
   query: async (query) => {
-    return db.collection('cards').find(query);
+    return db.collection('cards').find(query).toArray();
   },
   // Create a new card in the database
   create: async (card) => {
@@ -36,9 +36,7 @@ module.exports = {
     const errors = cardModel.validate(card);
     // If no validation errors then update the card
     if (!errors.error) {
-      await db
-        .collection('cards')
-        .findOneAndUpdate({ _id: ObjectId(cardId) }, card);
+      await db.collection('cards').replaceOne({ _id: ObjectId(cardId) }, card);
     } else {
       throw errors.error.details;
     }
@@ -46,5 +44,9 @@ module.exports = {
   // Remove a card from the database
   remove: async (cardId) => {
     return db.collection('cards').deleteOne({ _id: ObjectId(cardId) });
+  },
+  // Remove all of the cards based on a query
+  removeQuery: async (query) => {
+    return db.collection('cards').deleteMany(query);
   },
 };

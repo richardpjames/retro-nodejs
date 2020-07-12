@@ -5,7 +5,7 @@ const usersController = require('../controllers/usersController');
 const authCheck = require('../auth/authCheck');
 
 // Create a router
-const usersRouter = express.Router();
+const usersRouter = express.Router({ mergeParams: true });
 
 // Only allow for authenticated users
 usersRouter.use(authCheck);

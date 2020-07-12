@@ -28,14 +28,8 @@ mongo.connectToServer(() => {
     app.use(auth0Token);
 
     // Routers are requried after we have connected to the db so allow require here
-    const boardsRouter = require('./routes/boardsRoutes');
-    const templatesRouter = require('./routes/templatesRoutes');
-    const usersRouter = require('./routes/usersRoutes');
-
-    // Create our routes
-    app.use('/api/boards', boardsRouter);
-    app.use('/api/templates', templatesRouter);
-    app.use('/api/users', usersRouter);
+    const router = require('./routes/routes');
+    app.use(router);
 
     // Start the application as per the configuration settings
     app.listen(config.application.port, () =>

@@ -17,7 +17,7 @@ module.exports = {
     return db.collection('columns').findOne({ _id: ObjectId(columnId) });
   },
   query: async (query) => {
-    return db.collection('columns').find(query);
+    return db.collection('columns').find(query).toArray();
   },
   // Create a new column in the database
   create: async (column) => {
@@ -38,7 +38,7 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('columns')
-        .findOneAndUpdate({ _id: ObjectId(columnId) }, column);
+        .replaceOne({ _id: ObjectId(columnId) }, column);
     } else {
       throw errors.error.details;
     }
@@ -46,5 +46,9 @@ module.exports = {
   // Remove a column from the database
   remove: async (columnId) => {
     return db.collection('columns').deleteOne({ _id: ObjectId(columnId) });
+  },
+  // Remove all of the columns based on a query
+  removeQuery: async (query) => {
+    return db.collection('columns').deleteMany(query);
   },
 };

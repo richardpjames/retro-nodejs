@@ -17,7 +17,7 @@ module.exports = {
     return db.collection('templates').findOne({ _id: ObjectId(templateId) });
   },
   query: async (query) => {
-    return db.collection('templates').find(query);
+    return db.collection('templates').find(query).toArray();
   },
   // Create a new template in the database
   create: async (template) => {
@@ -38,7 +38,7 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('templates')
-        .findOneAndUpdate({ _id: ObjectId(templateId) }, template);
+        .replaceOne({ _id: ObjectId(templateId) }, template);
     } else {
       throw errors.error.details;
     }

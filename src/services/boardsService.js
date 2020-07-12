@@ -17,7 +17,7 @@ module.exports = {
     return db.collection('boards').findOne({ _id: ObjectId(boardId) });
   },
   query: async (query) => {
-    return db.collection('boards').find(query);
+    return db.collection('boards').find(query).toArray();
   },
   // Create a new board in the database
   create: async (board) => {
@@ -25,10 +25,9 @@ module.exports = {
     const errors = boardModel.validate(board);
     // If no validation errors then create the board
     if (!errors.error) {
-      await db.collection('boards').insertOne(board);
-    } else {
-      throw errors.error.details;
+      return db.collection('boards').insertOne(board);
     }
+    throw errors.error.details;
   },
   // Replace a board with a new one
   update: async (boardId, board) => {
@@ -38,7 +37,7 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('boards')
-        .findOneAndUpdate({ _id: ObjectId(boardId) }, board);
+        .replaceOne({ _id: ObjectId(boardId) }, board);
     } else {
       throw errors.error.details;
     }

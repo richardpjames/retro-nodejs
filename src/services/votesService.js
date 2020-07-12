@@ -17,7 +17,7 @@ module.exports = {
     return db.collection('votes').findOne({ _id: ObjectId(voteId) });
   },
   query: async (query) => {
-    return db.collection('votes').find(query);
+    return db.collection('votes').find(query).toArray();
   },
   // Create a new vote in the database
   create: async (vote) => {
@@ -36,9 +36,7 @@ module.exports = {
     const errors = voteModel.validate(vote);
     // If no validation errors then update the vote
     if (!errors.error) {
-      await db
-        .collection('votes')
-        .findOneAndUpdate({ _id: ObjectId(voteId) }, vote);
+      await db.collection('votes').replaceOne({ _id: ObjectId(voteId) }, vote);
     } else {
       throw errors.error.details;
     }

@@ -19,7 +19,7 @@ module.exports = {
       .findOne({ _id: ObjectId(templateColumnId) });
   },
   query: async (query) => {
-    return db.collection('templateColumns').find(query);
+    return db.collection('templateColumns').find(query).toArray();
   },
   // Create a new templateColumn in the database
   create: async (templateColumn) => {
@@ -40,7 +40,7 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('templateColumns')
-        .findOneAndUpdate({ _id: ObjectId(templateColumnId) }, templateColumn);
+        .replaceOne({ _id: ObjectId(templateColumnId) }, templateColumn);
     } else {
       throw errors.error.details;
     }

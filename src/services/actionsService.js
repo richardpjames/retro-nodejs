@@ -17,7 +17,7 @@ module.exports = {
     return db.collection('actions').findOne({ _id: ObjectId(actionId) });
   },
   query: async (query) => {
-    return db.collection('actions').find(query);
+    return db.collection('actions').find(query).toArray();
   },
   // Create a new action in the database
   create: async (action) => {
@@ -38,7 +38,7 @@ module.exports = {
     if (!errors.error) {
       await db
         .collection('actions')
-        .findOneAndUpdate({ _id: ObjectId(actionId) }, action);
+        .replaceOne({ _id: ObjectId(actionId) }, action);
     } else {
       throw errors.error.details;
     }

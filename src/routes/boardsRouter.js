@@ -6,7 +6,7 @@ const boardsController = require('../controllers/boardsController');
 const authCheck = require('../auth/authCheck');
 
 // Create a router
-const boardsRouter = express.Router();
+const boardsRouter = express.Router({ mergeParams: true });
 
 // Secure all of these routes behind the auth check
 boardsRouter.use(authCheck);
