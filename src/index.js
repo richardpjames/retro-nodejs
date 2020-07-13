@@ -16,7 +16,7 @@ const mongo = require('./db/mongo');
 const redis = require('./db/redis');
 // Socket.io for realtime updates
 const socketio = require('./sockets/socketio');
-// Middleware
+// Middleware for auth0
 const auth0Token = require('./middleware/auth0Token');
 
 // Connect to mongo and redis
