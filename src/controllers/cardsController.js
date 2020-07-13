@@ -1,9 +1,13 @@
 // Use the templatesService for datbase operations
 const { ObjectId, ObjectID } = require('mongodb');
-
+// For broadcasting success to clients
+const sockets = require('../sockets/socketio');
 // Services for data
 const cardsService = require('../services/cardsService');
 const usersService = require('../services/usersService');
+
+// Get the socket server
+const io = sockets.io();
 
 // The controller for dards
 module.exports = {
@@ -48,6 +52,7 @@ module.exports = {
       res.status(200);
       card.nickName = req.user.nickname;
       card.picture = req.user.picture;
+      io.to(req.params.boardId).emit('card created', card);
       return res.send(card);
     } catch (error) {
       res.status(400);
@@ -82,6 +87,7 @@ module.exports = {
       await cardsService.update(req.params.cardId, updatedCard);
       // After all affected cards are moved we can return the updated card
       res.status(200);
+      io.to(req.params.boardId).emit('card updated', updatedCard);
       return res.send(updatedCard);
       // Return any errors back to the user
     } catch (error) {
@@ -95,19 +101,10 @@ module.exports = {
       res.status(404);
       res.send();
     }
-    const cardsToMove = await cardsService.query({
-      columnId: ObjectId(card.columnId),
-      order: { $gt: card.order },
-    });
     // Remove the requested card
     await cardsService.remove(req.params.cardId);
     // Shift all later cards down the list
-    await Promise.all(
-      cardsToMove.map(async (cardToMove) => {
-        cardToMove.order -= 1;
-        await cardsService.update(cardToMove._id, cardToMove);
-      }),
-    );
+    io.to(req.params.boardId).emit('card deleted', req.params.cardId);
     res.status(204);
     return res.send();
   },

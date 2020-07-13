@@ -3,8 +3,6 @@
 const express = require('express');
 // Http server
 const http = require('http');
-// Socket.io for realtime
-const socketio = require('socket.io');
 // For settings cors settings
 const cors = require('cors');
 // Body parser takes json objects from the body and adds them to the request
@@ -16,6 +14,8 @@ const config = require('./config/config');
 // Database utlities
 const mongo = require('./db/mongo');
 const redis = require('./db/redis');
+// Socket.io for realtime updates
+const socketio = require('./sockets/socketio');
 // Middleware
 const auth0Token = require('./middleware/auth0Token');
 
@@ -31,14 +31,14 @@ mongo.connectToServer(() => {
     app.use(bodyParser.json());
     // Get the auth0 management token
     app.use(auth0Token);
+    // Add express and socket.io to the http server
+    const server = http.createServer(app);
+    socketio.connectServer(server);
 
     // Routers are requried after we have connected to the db so allow require here
     const router = require('./routes/routes');
     app.use(router);
 
-    // Add express and socket.io to the http server
-    const server = http.createServer(app);
-    const io = socketio(server);
     // Start the application as per the configuration settings
     server.listen(config.application.port, () =>
       debug(`Server listening at http://localhost:${config.application.port}`),
