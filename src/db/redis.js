@@ -8,11 +8,9 @@ let db;
 
 const redisCache = {
   // This performs the initial connection to the database (from index.js)
-  connectToServer: (callback) => {
-    db = redis.createClient(config.database.redis);
-    db.on('connect', () => {
-      callback();
-    });
+  connectToServer: async (callback) => {
+    db = await redis.createClient(config.database.redis);
+    callback();
   },
 
   // This function can be used to retrieve the single db connection at any time
