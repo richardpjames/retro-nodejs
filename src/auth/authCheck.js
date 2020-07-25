@@ -39,14 +39,14 @@ module.exports = async (req, res, next) => {
   const authHeader = req.headers.authorization || '';
 
   if (authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7, authHeader.length);
-    const decodedToken = jwt.decode(token, { complete: true });
-
-    // We need a client to fetch the secret for verifying
-    const key = await getSigningKey(decodedToken.header.kid);
-    const publicKey = key.getPublicKey();
-
     try {
+      const token = authHeader.substring(7, authHeader.length);
+      const decodedToken = jwt.decode(token, { complete: true });
+
+      // We need a client to fetch the secret for verifying
+      const key = await getSigningKey(decodedToken.header.kid);
+      const publicKey = key.getPublicKey();
+
       const decoded = await verifyToken(token, publicKey, {
         // Check the audience and issuer are correct
         audience: config.auth0.audience,

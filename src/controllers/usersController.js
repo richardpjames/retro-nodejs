@@ -34,6 +34,12 @@ module.exports = {
       res.status(404);
       return res.send();
     }
+    // If the user is requesting their own details then send all
+    if (user.user_id === req.user.user_id) {
+      res.status(200);
+      return res.send({ id: user.user_id, ...user });
+    }
+    // Otherwise send only basic information
     res.status(200);
     return res.send({
       id: user.user_id,

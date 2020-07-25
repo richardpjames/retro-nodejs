@@ -41,14 +41,10 @@ const mongo = {
         await db.createCollection('templateColumns', {
           collation: { locale: 'en_US', strength: 2 },
         });
-        await db.createCollection('users', {
-          collation: { locale: 'en_US', strength: 2 },
-        });
         callback();
       },
     );
   },
-
   // This function can be used to retrieve the single db connection at any time
   db: () => {
     return db;

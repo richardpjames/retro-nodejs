@@ -19,4 +19,13 @@ module.exports = {
       tokenUrl: process.env.AUTH0_MGMT_TOKEN_URL,
     },
   },
+  paddle: {
+    vendorId: process.env.PADDLE_VENDOR_ID,
+    vendorAuthCode: process.env.PADDLE_AUTH_CODE,
+    usersURL: process.env.PADDLE_USERS_URL,
+  },
+  redis: {
+    shortExpiryTime: process.env.REDIS_EXPIRY_SHORT,
+    expiryTime: process.env.REDIS_EXPIRY,
+  },
 };

@@ -1,8 +1,5 @@
 // Axios is used for fetching data
 const axios = require('axios');
-// Debug for errors
-const debug = require('debug')('app:usersService');
-
 // Connection to the redis cache
 const redis = require('../db/redis');
 // Configuration is required to connect to auth0
@@ -40,8 +37,11 @@ module.exports = {
     );
     // If there was a user returned from the API then save them in the cache
     if (auth0users.data) {
-      // Set expiry of 300 (5 mins)
-      db.setex(redisKey, 300, JSON.stringify(auth0users.data));
+      db.setex(
+        redisKey,
+        config.redis.shortExpiryTime,
+        JSON.stringify(auth0users.data),
+      );
       return auth0users.data;
     }
     // If there was no user data then return null
@@ -62,8 +62,31 @@ module.exports = {
     );
     // If there was a user returned from the API then save them in the cache
     if (auth0user.data) {
+      // Get details of the subscription from paddle if there is one
+      if (
+        auth0user.data.app_metadata &&
+        auth0user.data.app_metadata.subscription_id
+      ) {
+        // Need to supply paddle with the subscription Id from the user metadata
+        const paddleRequest = {
+          vendor_id: config.paddle.vendorId,
+          vendor_auth_code: config.paddle.vendorAuthCode,
+          subscription_id: auth0user.data.app_metadata.subscription_id,
+        };
+        // Get the details back from paddle
+        const subscriptionDetails = await axios.get(config.paddle.usersURL, {
+          params: { ...paddleRequest },
+        });
+        // Attach to the exisitng user
+        // eslint-disable-next-line prefer-destructuring
+        auth0user.data.subscription = subscriptionDetails.data.response[0];
+      }
       // Set expiry of 3600 (1 hour)
-      db.setex(redisKey, 3600, JSON.stringify(auth0user.data));
+      db.setex(
+        redisKey,
+        config.redis.expiryTime,
+        JSON.stringify(auth0user.data),
+      );
       return auth0user.data;
     }
     // If there was no user then return null
