@@ -22,7 +22,8 @@
     "jwks-rsa": "^1.8.1",
     "mongodb": "^3.5.9",
     "redis": "^3.0.2",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.3.0",
+    "verify-paddle-webhook": "^1.0.0"
   },
   "devDependencies": {
     "dotenv": "^8.2.0",

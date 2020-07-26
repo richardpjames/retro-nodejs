@@ -23,6 +23,7 @@ module.exports = {
     vendorId: process.env.PADDLE_VENDOR_ID,
     vendorAuthCode: process.env.PADDLE_AUTH_CODE,
     usersURL: process.env.PADDLE_USERS_URL,
+    publicKey: process.env.PADDLE_PUBLIC_KEY.replace(/\\n/g, '\n'),
   },
   redis: {
     shortExpiryTime: process.env.REDIS_EXPIRY_SHORT,

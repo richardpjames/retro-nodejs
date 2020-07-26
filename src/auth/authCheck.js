@@ -59,6 +59,16 @@ module.exports = async (req, res, next) => {
         res.status(401);
         return res.send();
       }
+      // Determine the correct subscription for the user
+      user.plan = 'free';
+      if (
+        user.app_metadata &&
+        user.app_metadata.cancellation_date &&
+        Date.parse(user.app_metadata.cancellation_date) > Date.now()
+      ) {
+        user.plan = 'professional';
+      }
+
       // Otherwise attach to the request
       req.user = user;
       // Final callback (pyramid of doom!) to get the roles for the user

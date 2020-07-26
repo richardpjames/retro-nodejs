@@ -62,6 +62,15 @@ module.exports = {
     );
     // If there was a user returned from the API then save them in the cache
     if (auth0user.data) {
+      // Determine the correct subscription for the user
+      auth0user.data.plan = 'free';
+      if (
+        auth0user.data.app_metadata &&
+        auth0user.data.app_metadata.cancellation_date &&
+        Date.parse(auth0user.data.app_metadata.cancellation_date) > Date.now()
+      ) {
+        auth0user.data.plan = 'professional';
+      }
       // Get details of the subscription from paddle if there is one
       if (
         auth0user.data.app_metadata &&
@@ -78,8 +87,10 @@ module.exports = {
           params: { ...paddleRequest },
         });
         // Attach to the exisitng user
-        // eslint-disable-next-line prefer-destructuring
-        auth0user.data.subscription = subscriptionDetails.data.response[0];
+        if (subscriptionDetails.data.response) {
+          // eslint-disable-next-line prefer-destructuring
+          auth0user.data.subscription = subscriptionDetails.data.response[0];
+        }
       }
       // Set expiry of 3600 (1 hour)
       db.setex(
@@ -90,6 +101,22 @@ module.exports = {
       return auth0user.data;
     }
     // If there was no user then return null
+    return null;
+  },
+  updateAppMetaData: async (userId, metadataKey, metadataValue, token) => {
+    // We're updating this user, so remove from the cache
+    const redisKey = `users:${userId}`;
+    db.del(redisKey);
+    // This is the data to include in the patch
+    const data = { app_metadata: { [metadataKey]: metadataValue } };
+    await axios.patch(
+      `${config.auth0.management.audience}users/${userId}`,
+      data,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    // For now return null
     return null;
   },
 };

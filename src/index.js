@@ -29,6 +29,7 @@ mongo.connectToServer(() => {
     app.use(cors());
     // Configuration and middleware
     app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));
     // Get the auth0 management token
     app.use(auth0Token);
     // Add express and socket.io to the http server
