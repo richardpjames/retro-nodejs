@@ -13,8 +13,10 @@ module.exports = {
     io.on('connection', (socket) => {
       debug('Client connected');
       socket.on('join', (room) => {
-        debug(`Client joined room - ${room}`);
         socket.join(room);
+      });
+      socket.on('leave', (room) => {
+        socket.leave(room);
       });
     });
   },

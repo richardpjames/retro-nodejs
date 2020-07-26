@@ -23,12 +23,15 @@ const mongo = {
         await db.createCollection('boards', {
           collation: { locale: 'en_US', strength: 2 },
         });
+        await db.collection('boards').createIndex({ userId: 1 });
         await db.createCollection('columns', {
           collation: { locale: 'en_US', strength: 2 },
         });
+        await db.collection('columns').createIndex({ boardId: 1 });
         await db.createCollection('cards', {
           collation: { locale: 'en_US', strength: 2 },
         });
+        await db.collection('cards').createIndex({ boardId: 1, columnId: 1 });
         await db.createCollection('actions', {
           collation: { locale: 'en_US', strength: 2 },
         });

@@ -13,30 +13,38 @@ const io = sockets.io();
 module.exports = {
   // Get all simply returns all cards from the database for a given board
   getAll: async (req, res) => {
-    // Build up the query
-    let query = {};
-    // If there is a boardId then add it
-    if (req.params.boardId) {
-      query = { ...query, boardId: ObjectId(req.params.boardId) };
+    try {
+      // Build up the query
+      let query = {};
+      // If there is a boardId then add it
+      if (req.params.boardId) {
+        query = { ...query, boardId: ObjectId(req.params.boardId) };
+      }
+      // If there is a columnId then add it
+      if (req.params.columnId) {
+        query = { ...query, columnId: ObjectId(req.params.columnId) };
+      }
+      const cards = await cardsService.query(query);
+      await Promise.all(
+        cards.map(async (card) => {
+          // Add user information to the cards
+          const user = await usersService.getById(
+            card.userId,
+            req.managementToken,
+          );
+          // eslint-disable-next-line no-param-reassign
+          card.nickName = user.nickname;
+          // eslint-disable-next-line no-param-reassign
+          card.picture = user.picture;
+          return card;
+        }),
+      );
+      res.status(200);
+      return res.send(cards);
+    } catch (error) {
+      res.status(500);
+      return res.send(error);
     }
-    // If there is a columnId then add it
-    if (req.params.columnId) {
-      query = { ...query, columnId: ObjectId(req.params.columnId) };
-    }
-    const cards = await cardsService.query(query);
-    await Promise.all(
-      cards.map(async (card) => {
-        // Add user information to the cards
-        const user = await usersService.getById(card.userId);
-        // eslint-disable-next-line no-param-reassign
-        card.nickName = user.nickname;
-        // eslint-disable-next-line no-param-reassign
-        card.picture = user.picture;
-        return card;
-      }),
-    );
-    res.status(200);
-    return res.send(cards);
   },
   // For the creation of new cards
   create: async (req, res) => {
