@@ -23,6 +23,9 @@ module.exports = {
             req.managementToken,
           );
         }
+        if (req.body.alert_name === 'subscription_updated') {
+          await usersService.clearCache(req.body.passthrough);
+        }
         if (req.body.alert_name === 'subscription_cancelled') {
           await usersService.updateAppMetaData(
             req.body.passthrough,

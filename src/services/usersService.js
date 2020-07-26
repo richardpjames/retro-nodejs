@@ -119,4 +119,8 @@ module.exports = {
     // For now return null
     return null;
   },
+  clearCache: async (userId) => {
+    const redisKey = `users:${userId}`;
+    return db.del(redisKey);
+  },
 };
