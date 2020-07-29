@@ -38,6 +38,10 @@ const mongo = {
         await db.createCollection('votes', {
           collation: { locale: 'en_US', strength: 2 },
         });
+        await db.createCollection('teams', {
+          collation: { locale: 'en_US', strength: 2 },
+        });
+        await db.collection('teams').createIndex({ members: 1 });
         await db.createCollection('templates', {
           collation: { locale: 'en_US', strength: 2 },
         });
