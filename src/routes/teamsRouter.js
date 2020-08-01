@@ -14,7 +14,8 @@ teamsRouter.use(authCheck);
 teamsRouter.get('/', teamsController.getAll);
 teamsRouter.get('/:teamId', teamsController.get);
 teamsRouter.post('/', teamsController.create);
-teamsRouter.put('/', teamsController.update);
+teamsRouter.put('/:teamId', teamsController.update);
 teamsRouter.delete('/:teamId', teamsController.remove);
+teamsRouter.delete('/:teamId/memberships', teamsController.removeMembership);
 
 module.exports = teamsRouter;

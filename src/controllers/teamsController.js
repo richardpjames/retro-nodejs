@@ -62,8 +62,8 @@ module.exports = {
       return res.send();
     }
 
-    // If allowed uperation then convert strings to object ids
-    updatedTeam._id = ObjectID(updatedTeam._id);
+    // Remove the Id from the updated team
+    delete updatedTeam._id;
 
     try {
       // Update the teams
@@ -87,5 +87,26 @@ module.exports = {
     await teamsService.remove(req.params.teamId);
     res.status(204);
     return res.send();
+  },
+  removeMembership: async (req, res) => {
+    // Find the team requested
+    const team = await teamsService.getById(req.params.teamId);
+    // If the team has any members, then remove this one
+    if (team.members) {
+      team.members = team.members.filter(
+        (member) => member.email !== req.user.email,
+      );
+    }
+    try {
+      // Remove the id from the team to allow update
+      delete team._id;
+      // Update team and report success
+      teamsService.update(req.params.teamId, team);
+      res.status(200);
+      res.send(team);
+    } catch (error) {
+      res.status(400);
+      return res.send();
+    }
   },
 };
