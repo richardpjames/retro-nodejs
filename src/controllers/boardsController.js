@@ -1,5 +1,5 @@
 // For generating mongo object Ids
-const { ObjectID, ObjectId } = require('mongodb');
+const { ObjectID } = require('mongodb');
 
 // Use the boardsService for datbase operations
 const boardsService = require('../services/boardsService');
@@ -7,6 +7,7 @@ const templatesService = require('../services/templatesService');
 const columnsService = require('../services/columnsService');
 const templateColumnsService = require('../services/templateColumnsService');
 const cardsService = require('../services/cardsService');
+const teamsService = require('../services/teamsService');
 
 // Get the model to check the request
 const createBoardModel = require('../models/createBoardModel');
@@ -15,7 +16,16 @@ const createBoardModel = require('../models/createBoardModel');
 module.exports = {
   // Get all simply returns all boards from the database
   getAll: async (req, res) => {
-    const boards = await boardsService.query({ userId: req.user.user_id });
+    const teams = await teamsService.query({
+      $or: [
+        { members: { $elemMatch: { email: req.user.email } } },
+        { userId: req.user.user_id },
+      ],
+    });
+    const teamIds = teams.map((team) => team._id);
+    const boards = await boardsService.query({
+      $or: [{ userId: req.user.user_id }, { teamId: { $in: teamIds } }],
+    });
     res.status(200);
     return res.send(boards);
   },
@@ -63,6 +73,8 @@ module.exports = {
     // Set the board up from the request
     board.name = boardRequest.name;
     board.description = boardRequest.description;
+    board.private = boardRequest.private;
+    board.teamId = ObjectID(boardRequest.teamId);
     // Set the user for the board
     board.userId = req.user.user_id;
     // Set the created time
@@ -101,7 +113,7 @@ module.exports = {
     // Remove the board and any columns
     await boardsService.remove(req.params.boardId);
     await columnsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
-    await cardsService.removeQuery({ boardId: ObjectId(req.params.boardId) });
+    await cardsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
     res.status(204);
     return res.send();
   },

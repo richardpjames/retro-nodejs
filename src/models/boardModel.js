@@ -8,4 +8,6 @@ module.exports = joi.object().keys({
   maxVotes: joi.number().integer().min(0).required(),
   created: joi.date().required(),
   userId: joi.string().required(),
+  teamId: joi.object(),
+  private: joi.boolean().required(),
 });

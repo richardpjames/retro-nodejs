@@ -1,5 +1,3 @@
-// For creating object ids
-const { ObjectID } = require('mongodb');
 // Use the boardsService for datbase operations
 const teamsService = require('../services/teamsService');
 
