@@ -16,6 +16,7 @@ teamsRouter.get('/:teamId', teamsController.get);
 teamsRouter.post('/', teamsController.create);
 teamsRouter.put('/:teamId', teamsController.update);
 teamsRouter.delete('/:teamId', teamsController.remove);
+teamsRouter.put('/:teamId/memberships', teamsController.updateMembership);
 teamsRouter.delete('/:teamId/memberships', teamsController.removeMembership);
 
 module.exports = teamsRouter;

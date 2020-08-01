@@ -88,6 +88,26 @@ module.exports = {
     res.status(204);
     return res.send();
   },
+  updateMembership: async (req, res) => {
+    try {
+      // Find the team requested
+      const team = await teamsService.getById(req.params.teamId);
+      // Find the membership to update
+      const membership = team.members.find(
+        (member) => member.email === req.user.email,
+      );
+      // Set to the new status
+      membership.status = req.body.status;
+      // Remove the id to allow saving
+      delete team._id;
+      teamsService.update(req.params.teamId, team);
+      res.status(200);
+      return res.send(team);
+    } catch (error) {
+      res.status(400);
+      return res.send();
+    }
+  },
   removeMembership: async (req, res) => {
     // Find the team requested
     const team = await teamsService.getById(req.params.teamId);
@@ -103,7 +123,7 @@ module.exports = {
       // Update team and report success
       teamsService.update(req.params.teamId, team);
       res.status(200);
-      res.send(team);
+      return res.send(team);
     } catch (error) {
       res.status(400);
       return res.send();
