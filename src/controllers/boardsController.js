@@ -8,6 +8,7 @@ const columnsService = require('../services/columnsService');
 const templateColumnsService = require('../services/templateColumnsService');
 const cardsService = require('../services/cardsService');
 const teamsService = require('../services/teamsService');
+const votesService = require('../services/votesService');
 
 // Get the model to check the request
 const createBoardModel = require('../models/createBoardModel');
@@ -110,10 +111,11 @@ module.exports = {
       res.status(404);
       return res.send();
     }
-    // Remove the board and any columns
+    // Remove the board and any columns, cards and votes
     await boardsService.remove(req.params.boardId);
     await columnsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
     await cardsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
+    await votesService.removeQuery({ boardId: ObjectID(req.params.boardId) });
     res.status(204);
     return res.send();
   },

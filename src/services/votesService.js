@@ -45,4 +45,8 @@ module.exports = {
   remove: async (voteId) => {
     return db.collection('votes').deleteOne({ _id: ObjectId(voteId) });
   },
+  // Remove all of the votes based on a query
+  removeQuery: async (query) => {
+    return db.collection('votes').deleteMany(query);
+  },
 };

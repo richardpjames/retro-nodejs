@@ -38,6 +38,9 @@ const mongo = {
         await db.createCollection('votes', {
           collation: { locale: 'en_US', strength: 2 },
         });
+        await db.collection('votes').createIndex({ boardId: 1 });
+        await db.collection('votes').createIndex({ boardId: 1, userId: 1 });
+        await db.collection('votes').createIndex({ cardId: 1, userId: 1 });
         await db.createCollection('teams', {
           collation: { locale: 'en_US', strength: 2 },
         });

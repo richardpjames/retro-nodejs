@@ -5,6 +5,7 @@ const sockets = require('../sockets/socketio');
 // Services for data
 const cardsService = require('../services/cardsService');
 const usersService = require('../services/usersService');
+const votesService = require('../services/votesService');
 
 // Get the socket server
 const io = sockets.io();
@@ -104,13 +105,18 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
-    const card = await cardsService.getById(req.params.cardId);
-    if (!card) {
+    const card = await cardsService.query({
+      _id: ObjectId(req.params.cardId),
+      userId: req.user.user_id,
+    });
+    if (card.length === 0) {
       res.status(404);
-      res.send();
+      return res.send();
     }
     // Remove the requested card
     await cardsService.remove(req.params.cardId);
+    // Remove any associated votes
+    await votesService.removeQuery({ cardId: ObjectID(req.params.cardId) });
     // Shift all later cards down the list
     io.to(req.params.boardId).emit('card deleted', req.params.cardId);
     res.status(204);

@@ -5,6 +5,6 @@ const joi = require('joi');
 module.exports = joi.object().keys({
   created: joi.date().required(),
   userId: joi.string().required(),
-  boardId: joi.objectId().required(),
+  boardId: joi.object().required(),
   cardId: joi.object().required(),
 });
