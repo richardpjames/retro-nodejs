@@ -25,10 +25,9 @@ module.exports = {
     const errors = columnModel.validate(column);
     // If no validation errors then create the column
     if (!errors.error) {
-      await db.collection('columns').insertOne(column);
-    } else {
-      throw errors.error.details;
+      return db.collection('columns').insertOne(column);
     }
+    throw errors.error.details;
   },
   // Replace a column with a new one
   update: async (columnId, column) => {

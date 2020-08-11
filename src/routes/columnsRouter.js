@@ -13,5 +13,8 @@ columnsRouter.use(authCheck);
 // Routes
 columnsRouter.get('/', columnsController.getAll);
 columnsRouter.get('/:columnId', columnsController.get);
+columnsRouter.post('/', columnsController.create);
+columnsRouter.put('/:columnId', columnsController.update);
+columnsRouter.delete('/:columnId', columnsController.remove);
 
 module.exports = columnsRouter;
