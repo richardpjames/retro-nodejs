@@ -76,6 +76,7 @@ module.exports = {
     board.name = boardRequest.name;
     board.description = boardRequest.description;
     board.private = boardRequest.private;
+    board.showActions = boardRequest.showActions;
     board.teamId = ObjectID(boardRequest.teamId);
     // Set the user for the board
     board.userId = req.user.user_id;

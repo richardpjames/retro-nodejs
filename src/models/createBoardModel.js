@@ -8,4 +8,5 @@ module.exports = joi.object().keys({
   templateId: joi.string().required(),
   teamId: joi.string(),
   private: joi.boolean().required(),
+  showActions: joi.boolean().required(),
 });
