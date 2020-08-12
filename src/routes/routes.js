@@ -12,6 +12,7 @@ const templateColumnsRouter = require('./templateColumnsRouter');
 const teamsRouter = require('./teamsRouter');
 const votesRouter = require('./votesRouter');
 const cardVotesRouter = require('./cardVotesRouter');
+const boardActionsRouter = require('./boardActionsRouter');
 const paddleRouter = require('./paddleRouter');
 
 // Create a router
@@ -24,6 +25,7 @@ router.use('/api/boards/:boardId/cards/:cardId/votes', cardVotesRouter);
 router.use('/api/boards/:boardId/columns', columnsRouter);
 router.use('/api/boards/:boardId/columns/:columnId/cards', columnCardsRouter);
 router.use('/api/boards/:boardId/votes', votesRouter);
+router.use('/api/boards/:boardId/actions', boardActionsRouter);
 router.use('/api/templates', templatesRouter);
 router.use('/api/templates/:templateId/columns', templateColumnsRouter);
 router.use('/api/users', usersRouter);

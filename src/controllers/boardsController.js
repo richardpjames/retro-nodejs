@@ -12,6 +12,7 @@ const votesService = require('../services/votesService');
 
 // Get the model to check the request
 const createBoardModel = require('../models/createBoardModel');
+const actionsService = require('../services/actionsService');
 
 // The controller for boards
 module.exports = {
@@ -116,6 +117,7 @@ module.exports = {
     await columnsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
     await cardsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
     await votesService.removeQuery({ boardId: ObjectID(req.params.boardId) });
+    await actionsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
     res.status(204);
     return res.send();
   },
