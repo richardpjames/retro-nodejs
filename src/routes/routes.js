@@ -14,6 +14,7 @@ const votesRouter = require('./votesRouter');
 const cardVotesRouter = require('./cardVotesRouter');
 const boardActionsRouter = require('./boardActionsRouter');
 const paddleRouter = require('./paddleRouter');
+const actionsRouter = require('./actionsRouter');
 
 // Create a router
 const router = express.Router({ mergeParams: true });
@@ -31,5 +32,6 @@ router.use('/api/templates/:templateId/columns', templateColumnsRouter);
 router.use('/api/users', usersRouter);
 router.use('/api/paddle', paddleRouter);
 router.use('/api/teams', teamsRouter);
+router.use('/api/actions', actionsRouter);
 
 module.exports = router;

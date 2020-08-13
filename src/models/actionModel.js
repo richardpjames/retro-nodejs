@@ -7,6 +7,11 @@ module.exports = joi.object().keys({
   owner: joi.string().required(),
   open: joi.boolean().required(),
   due: joi.date().required(),
+  updates: joi.array().items({
+    created: joi.date().required(),
+    userId: joi.string().required(),
+    update: joi.string().required(),
+  }),
   created: joi.date().required(),
   userId: joi.string().required(),
   boardId: joi.object().required(),

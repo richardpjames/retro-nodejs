@@ -9,8 +9,6 @@ const templateColumnsService = require('../services/templateColumnsService');
 const cardsService = require('../services/cardsService');
 const teamsService = require('../services/teamsService');
 const votesService = require('../services/votesService');
-
-// Get the model to check the request
 const createBoardModel = require('../models/createBoardModel');
 const actionsService = require('../services/actionsService');
 

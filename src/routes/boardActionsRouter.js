@@ -14,5 +14,6 @@ boardActionsRouter.use(authCheck);
 boardActionsRouter.get('/', actionsController.getAll);
 boardActionsRouter.post('/', actionsController.create);
 boardActionsRouter.delete('/:actionId', actionsController.remove);
+boardActionsRouter.put('/:actionId', actionsController.update);
 
 module.exports = boardActionsRouter;

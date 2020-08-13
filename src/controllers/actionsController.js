@@ -4,6 +4,9 @@ const { ObjectId } = require('mongodb');
 const sockets = require('../sockets/socketio');
 // Services required for managing data
 const actionsService = require('../services/actionsService');
+const teamsService = require('../services/teamsService');
+const boardsService = require('../services/boardsService');
+const usersService = require('../services/usersService');
 
 // Get the socket server
 const io = sockets.io();
@@ -14,6 +17,48 @@ module.exports = {
     const actions = await actionsService.query({
       boardId: ObjectId(req.params.boardId),
     });
+    res.status(200);
+    return res.send(actions);
+  },
+  getForUser: async (req, res) => {
+    const teams = await teamsService.query({
+      $or: [
+        { members: { $elemMatch: { email: req.user.email } } },
+        { userId: req.user.user_id },
+      ],
+    });
+    const teamIds = teams.map((team) => team._id);
+    const boards = await boardsService.query({
+      $or: [{ userId: req.user.user_id }, { teamId: { $in: teamIds } }],
+    });
+    const boardIds = boards.map((board) => board._id);
+    const actions = await actionsService.query({ boardId: { $in: boardIds } });
+
+    await Promise.all(
+      actions.map(async (action) => {
+        const _board = boards.find((b) => b._id.equals(action.boardId));
+        if (_board) {
+          action.boardName = _board.name;
+          if (_board.teamId) {
+            const _team = teams.find((t) => t._id.equals(_board.teamId));
+            if (_team) {
+              action.teamName = _team.name;
+            }
+          }
+        }
+        // Updates all of the updated within an action with the user information
+        await Promise.all(
+          action.updates.map((update) => {
+            return usersService
+              .getById(update.userId, req.managementToken)
+              .then((user) => {
+                update.nickName = user.nickname;
+              });
+          }),
+        );
+        return true;
+      }),
+    );
     res.status(200);
     return res.send(actions);
   },
@@ -34,6 +79,28 @@ module.exports = {
       res.status(200);
       io.to(req.params.boardId).emit('action created', action);
       return res.send(action);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
+  update: async (req, res) => {
+    // Find the new action sent in the request and the original as we need to compare
+    const updatedAction = req.body;
+    delete updatedAction._id;
+    await Promise.all(
+      updatedAction.updates.map((update) => delete update.nickName),
+    );
+    // If allowed uperation then convert strings to object ids
+    updatedAction.boardId = ObjectId(updatedAction.boardId);
+    try {
+      // Update the card
+      await actionsService.update(req.params.actionId, updatedAction);
+      // After all affected cards are moved we can return the updated card
+      res.status(200);
+      io.to(req.params.boardId).emit('action updated', updatedAction);
+      return res.send(updatedAction);
+      // Return any errors back to the user
     } catch (error) {
       res.status(400);
       return res.send(error);
