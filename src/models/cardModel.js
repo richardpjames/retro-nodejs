@@ -10,4 +10,5 @@ module.exports = joi.object().keys({
   userId: joi.string().required(),
   columnId: joi.object().required(),
   boardId: joi.object().required(),
+  colour: joi.string().required(),
 });
