@@ -61,7 +61,8 @@ module.exports = {
     try {
       await cardsService.create(card);
       res.status(200);
-      card.nickName = req.user.nickname;
+      const user = await usersService.getById(card.userId);
+      card.nickName = user.nickname;
       card.picture = req.user.picture;
       io.to(req.params.boardId).emit('card created', card);
       return res.send(card);
