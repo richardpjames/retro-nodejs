@@ -82,13 +82,13 @@ module.exports = {
       return res.send();
     }
     // Changing the text of the card is not allowed unless you are the owner
-    if (
-      originalCard.userId !== req.user.user_id &&
-      updatedCard.text !== originalCard.text
-    ) {
-      res.status(400);
-      return res.send();
-    }
+    // if (
+    //   originalCard.userId !== req.user.user_id &&
+    //   updatedCard.text !== originalCard.text
+    // ) {
+    //   res.status(400);
+    //   return res.send();
+    // }
 
     // If allowed uperation then convert strings to object ids
     updatedCard._id = ObjectID(updatedCard._id);
