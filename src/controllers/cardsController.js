@@ -52,7 +52,9 @@ module.exports = {
     const card = req.body;
     // Set the created time
     card.created = Date.now();
-    card.userId = req.user.user_id;
+    if (!card.userId) {
+      card.userId = req.user.user_id;
+    }
     card.boardId = ObjectId(req.params.boardId);
     card.columnId = ObjectId(req.params.columnId);
     // Try and save the template (this will also validate the data)
@@ -107,7 +109,6 @@ module.exports = {
   remove: async (req, res) => {
     const card = await cardsService.query({
       _id: ObjectId(req.params.cardId),
-      userId: req.user.user_id,
     });
     if (card.length === 0) {
       res.status(404);

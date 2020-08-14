@@ -11,4 +11,8 @@ module.exports = joi.object().keys({
   columnId: joi.object().required(),
   boardId: joi.object().required(),
   colour: joi.string().required(),
+  combinedCards: joi.array().items({
+    userId: joi.string().required(),
+    text: joi.string().required(),
+  }),
 });
