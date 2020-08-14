@@ -14,5 +14,6 @@ module.exports = joi.object().keys({
   combinedCards: joi.array().items({
     userId: joi.string().required(),
     text: joi.string().required(),
+    colour: joi.string().required(),
   }),
 });
