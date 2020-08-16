@@ -5,7 +5,7 @@ const joi = require('joi');
 module.exports = joi.object().keys({
   text: joi.string().required(),
   owner: joi.string().required(),
-  open: joi.boolean().required(),
+  status: joi.string().required(),
   due: joi.date().required(),
   updates: joi.array().items({
     created: joi.date().required(),
@@ -13,6 +13,7 @@ module.exports = joi.object().keys({
     update: joi.string().required(),
   }),
   created: joi.date().required(),
+  closed: joi.date(),
   userId: joi.string().required(),
   boardId: joi.object().required(),
 });

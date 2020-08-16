@@ -72,9 +72,9 @@ module.exports = {
     try {
       // Get the column from the request
       const action = req.body;
-      // If not specified then default the status to open
-      if (action.open === undefined) {
-        action.open = true;
+      // If not specified then default the status to to do
+      if (action.status === undefined) {
+        action.status = 'todo';
       }
       // Add additional data from url etc.
       action.boardId = ObjectId(req.params.boardId);
