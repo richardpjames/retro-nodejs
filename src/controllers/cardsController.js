@@ -6,6 +6,7 @@ const sockets = require('../sockets/socketio');
 const cardsService = require('../services/cardsService');
 const usersService = require('../services/usersService');
 const votesService = require('../services/votesService');
+const boardsService = require('../services/boardsService');
 
 // Get the socket server
 const io = sockets.io();
@@ -49,6 +50,12 @@ module.exports = {
   },
   // For the creation of new cards
   create: async (req, res) => {
+    // Stop the creation of cards for locked boards
+    const board = await boardsService.getById(req.params.boardId);
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     const card = req.body;
     // Set the created time
     card.created = Date.now();
@@ -72,6 +79,12 @@ module.exports = {
     }
   },
   update: async (req, res) => {
+    // Stop the updating of cards for locked boards
+    const board = await boardsService.getById(req.params.boardId);
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     // Find the new card sent in the request and the original as we need to compare
     const updatedCard = req.body;
     const originalCard = await cardsService.getById(req.params.cardId);
@@ -82,13 +95,13 @@ module.exports = {
       return res.send();
     }
     // Changing the text of the card is not allowed unless you are the owner
-    // if (
-    //   originalCard.userId !== req.user.user_id &&
-    //   updatedCard.text !== originalCard.text
-    // ) {
-    //   res.status(400);
-    //   return res.send();
-    // }
+    if (
+      originalCard.userId !== req.user.user_id &&
+      updatedCard.text !== originalCard.text
+    ) {
+      res.status(400);
+      return res.send();
+    }
 
     // If allowed uperation then convert strings to object ids
     updatedCard._id = ObjectID(updatedCard._id);
@@ -108,6 +121,12 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
+    // Stop the removal of cards for locked boards
+    const board = await boardsService.getById(req.params.boardId);
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     const card = await cardsService.query({
       _id: ObjectId(req.params.cardId),
     });

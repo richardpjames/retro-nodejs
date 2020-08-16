@@ -15,5 +15,6 @@ boardsRouter.get('/', boardsController.getAll);
 boardsRouter.get('/:boardId', boardsController.get);
 boardsRouter.post('/', boardsController.create);
 boardsRouter.delete('/:boardId', boardsController.remove);
+boardsRouter.put('/:boardId', boardsController.update);
 
 module.exports = boardsRouter;

@@ -44,6 +44,11 @@ module.exports = {
       column.created = Date.now();
       // Check that the user owns this board
       const board = await boardsService.getById(req.params.boardId);
+      // Stop the creation of columns for locked boards
+      if (board.locked) {
+        res.status(400);
+        return res.send();
+      }
       // If the user does not own the board they cannot add a column
       if (board.userId !== req.user.user_id) {
         res.status(401);
@@ -62,6 +67,11 @@ module.exports = {
     // Find the new card sent in the request and the original as we need to compare
     const updatedColumn = req.body;
     const board = await boardsService.getById(req.params.boardId);
+    // Stop the update of columns for locked boards
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     // Check that there is a column for this board with the id
     const column = await columnsService.query({
       _id: ObjectId(req.params.columnId),
@@ -97,6 +107,11 @@ module.exports = {
   remove: async (req, res) => {
     // Find the board to check ownership
     const board = await boardsService.getById(req.params.boardId);
+    // Stop the removal of columns for locked boards
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     // Check that there is a column for this board with the id
     const column = await columnsService.query({
       _id: ObjectId(req.params.columnId),

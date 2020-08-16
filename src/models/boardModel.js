@@ -11,4 +11,6 @@ module.exports = joi.object().keys({
   teamId: joi.object(),
   private: joi.boolean().required(),
   showActions: joi.boolean().required(),
+  allowVotes: joi.boolean(),
+  locked: joi.boolean(),
 });

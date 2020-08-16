@@ -54,6 +54,11 @@ module.exports = {
 
     // Check if there are too many votes for this board
     const board = await boardsService.getById(req.params.boardId);
+    // Stop the creation of votes for locked boards
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     const totalVotes = await votesService.query({
       boardId: ObjectId(req.params.boardId),
       userId: req.user.user_id,
@@ -83,6 +88,12 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
+    const board = await boardsService.getById(req.params.boardId);
+    // Stop the removal of votes for locked boards
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     const vote = await votesService.query({
       _id: ObjectId(req.params.voteId),
       userId: req.user.user_id,

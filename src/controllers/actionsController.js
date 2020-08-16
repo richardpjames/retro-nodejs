@@ -63,6 +63,12 @@ module.exports = {
     return res.send(actions);
   },
   create: async (req, res) => {
+    const board = await boardsService.getById(req.params.boardId);
+    // Stop the creation of actions for locked boards
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     try {
       // Get the column from the request
       const action = req.body;
@@ -107,6 +113,12 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
+    const board = await boardsService.getById(req.params.boardId);
+    // Stop the removal of actions for locked boards
+    if (board.locked) {
+      res.status(400);
+      return res.send();
+    }
     // Check that there is a column for this board with the id
     const action = await actionsService.query({
       _id: ObjectId(req.params.actionId),

@@ -1,6 +1,7 @@
 // For generating mongo object Ids
 const { ObjectID } = require('mongodb');
-
+// For broadcasting success to clients
+const sockets = require('../sockets/socketio');
 // Use the boardsService for datbase operations
 const boardsService = require('../services/boardsService');
 const templatesService = require('../services/templatesService');
@@ -11,6 +12,9 @@ const teamsService = require('../services/teamsService');
 const votesService = require('../services/votesService');
 const createBoardModel = require('../models/createBoardModel');
 const actionsService = require('../services/actionsService');
+
+// Get the socket server
+const io = sockets.io();
 
 // The controller for boards
 module.exports = {
@@ -75,6 +79,8 @@ module.exports = {
     board.description = boardRequest.description;
     board.private = boardRequest.private;
     board.showActions = boardRequest.showActions;
+    board.allowVotes = false;
+    board.locked = false;
     board.teamId = ObjectID(boardRequest.teamId);
     // Set the user for the board
     board.userId = req.user.user_id;
@@ -104,11 +110,44 @@ module.exports = {
       return res.send(error);
     }
   },
+  update: async (req, res) => {
+    // Get the updated board from the request but remove the Id
+    const updatedBoard = req.body;
+    delete updatedBoard._id;
+
+    const board = await boardsService.getById(req.params.boardId);
+    // Prevent users from updating others boards or updating locked boards
+    if (!board || board.userId !== req.user.user_id || board.locked) {
+      res.status(400);
+      return res.send();
+    }
+    // Do not allow changing the created date
+    updatedBoard.created = board.created;
+    // Do not allow changing the user
+    updatedBoard.userId = board.userId;
+    // Do not allow changing the team
+    updatedBoard.teamId = board.teamId;
+    try {
+      // Update the board
+      await boardsService.update(req.params.boardId, updatedBoard);
+      // After all affected cards are moved we can return the updated card
+      res.status(200);
+      io.to(req.params.boardId).emit('board updated', {
+        ...updatedBoard,
+        _id: ObjectID(req.params.boardId),
+      });
+      return res.send(updatedBoard);
+      // Return any errors back to the user
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
   remove: async (req, res) => {
     const board = await boardsService.getById(req.params.boardId);
     // Prevent users from deleting others boards
     if (!board || board.userId !== req.user.user_id) {
-      res.status(404);
+      res.status(400);
       return res.send();
     }
     // Remove the board and any columns, cards and votes
