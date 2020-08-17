@@ -42,6 +42,21 @@ module.exports = {
         res.status(404);
         res.send();
       }
+      // If the board is private then additional checks are needed
+      if (board.private) {
+        // Find which teams this user is in
+        const teams = await teamsService.query({
+          $or: [
+            { members: { $elemMatch: { email: req.user.email } } },
+            { userId: req.user.user_id },
+          ],
+        });
+        const teamIds = teams.map((team) => team._id.toString());
+        if (!teamIds.includes(board.teamId.toString())) {
+          res.status(401);
+          return res.send();
+        }
+      }
       res.status(200);
       return res.send(board);
       // If any errors, then catch and throw 500
@@ -125,8 +140,8 @@ module.exports = {
     updatedBoard.created = board.created;
     // Do not allow changing the user
     updatedBoard.userId = board.userId;
-    // Do not allow changing the team
-    updatedBoard.teamId = board.teamId;
+    // Set the team to an objectID
+    updatedBoard.teamId = ObjectID(updatedBoard.teamId);
     try {
       // Update the board
       await boardsService.update(req.params.boardId, updatedBoard);
