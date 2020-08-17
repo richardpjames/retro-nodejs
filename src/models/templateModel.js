@@ -5,6 +5,7 @@ const joi = require('joi');
 module.exports = joi.object().keys({
   name: joi.string().required(),
   description: joi.string().required(),
+  instructions: joi.string().required(),
   maxVotes: joi.number().integer().min(0).required(),
   created: joi.date().required(),
 });

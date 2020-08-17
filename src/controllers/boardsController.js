@@ -136,6 +136,11 @@ module.exports = {
       res.status(400);
       return res.send();
     }
+    // If the instructions are empty them just remove
+    if (updatedBoard.instructions === '') {
+      delete updatedBoard.instructions;
+    }
+
     // Do not allow changing the created date
     updatedBoard.created = board.created;
     // Do not allow changing the user
