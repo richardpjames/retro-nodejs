@@ -42,7 +42,7 @@ module.exports = {
     const updatedTemplate = req.body;
     delete updatedTemplate._id;
     // Get the original template
-    const template = templatesService.getById(req.params.templateId);
+    const template = await templatesService.getById(req.params.templateId);
     // Do not allow changing the created date
     updatedTemplate.created = template.created;
     // Try and save
