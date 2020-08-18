@@ -21,5 +21,10 @@ templatesRouter.post(
   permissionCheck('create:templates'),
   templatesController.create,
 );
+templatesRouter.put(
+  '/:templateId',
+  permissionCheck('create:templates'),
+  templatesController.update,
+);
 
 module.exports = templatesRouter;

@@ -36,4 +36,26 @@ module.exports = {
       return res.send(error);
     }
   },
+  // Update existing template
+  update: async (req, res) => {
+    // Get the template and remove the Id
+    const updatedTemplate = req.body;
+    delete updatedTemplate._id;
+    // Get the original template
+    const template = templatesService.getById(req.params.templateId);
+    // Do not allow changing the created date
+    updatedTemplate.created = template.created;
+    // Try and save
+    try {
+      // Update the board
+      await templatesService.update(req.params.templateId, updatedTemplate);
+      // After all affected cards are moved we can return the updated card
+      res.status(200);
+      return res.send(updatedTemplate);
+      // Return any errors back to the user
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
 };
