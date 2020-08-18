@@ -94,6 +94,7 @@ module.exports = {
     board.description = boardRequest.description;
     board.private = boardRequest.private;
     board.showActions = boardRequest.showActions;
+    board.showInstructions = boardRequest.showInstructions;
     board.allowVotes = false;
     board.locked = false;
     board.teamId = ObjectID(boardRequest.teamId);

@@ -13,5 +13,6 @@ module.exports = joi.object().keys({
   private: joi.boolean().required(),
   showActions: joi.boolean().required(),
   allowVotes: joi.boolean(),
+  showInstructions: joi.boolean(),
   locked: joi.boolean(),
 });

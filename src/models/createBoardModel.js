@@ -9,4 +9,5 @@ module.exports = joi.object().keys({
   teamId: joi.string(),
   private: joi.boolean().required(),
   showActions: joi.boolean().required(),
+  showInstructions: joi.boolean().required(),
 });
