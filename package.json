@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tryghost/content-api": "^1.4.4",
     "axios": "^0.19.2",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
@@ -20,6 +21,7 @@
     "joi": "^14.3.1",
     "jsonwebtoken": "^8.5.1",
     "jwks-rsa": "^1.8.1",
+    "moment": "^2.27.0",
     "mongodb": "^3.5.9",
     "redis": "^3.0.2",
     "socket.io": "^2.3.0",

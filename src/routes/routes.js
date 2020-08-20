@@ -15,6 +15,7 @@ const cardVotesRouter = require('./cardVotesRouter');
 const boardActionsRouter = require('./boardActionsRouter');
 const paddleRouter = require('./paddleRouter');
 const actionsRouter = require('./actionsRouter');
+const sitemapController = require('../controllers/sitemapController');
 
 // Create a router
 const router = express.Router({ mergeParams: true });
@@ -33,5 +34,8 @@ router.use('/api/users', usersRouter);
 router.use('/api/paddle', paddleRouter);
 router.use('/api/teams', teamsRouter);
 router.use('/api/actions', actionsRouter);
+
+// Add sitemap here as nowhere better to go
+router.use('/sitemap', sitemapController.get);
 
 module.exports = router;
