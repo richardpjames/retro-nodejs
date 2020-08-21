@@ -113,17 +113,26 @@ module.exports = {
       if (config.application.environment === 'development') {
         res.cookie('token', token, {
           maxAge: 24 * 60 * 60 * 1000,
+          domain: 'localhost',
           secure: false,
           httpOnly: true,
+        });
+        res.cookie('isAuthenticated', true, {
+          maxAge: 24 * 60 * 60 * 1000,
+          domain: 'localhost',
         });
       } else {
         res.cookie('token', token, {
           maxAge: 24 * 60 * 60 * 1000,
+          domain: 'retrospectacle.io',
           secure: true,
           httpOnly: true,
         });
+        res.cookie('isAuthenticated', true, {
+          maxAge: 24 * 60 * 60 * 1000,
+          domain: 'retrospectacle.io',
+        });
       }
-      res.cookie('isAuthenticated', true, { maxAge: 24 * 60 * 60 * 1000 });
       return res.send();
     } catch (error) {
       res.status(401);
