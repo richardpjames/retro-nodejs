@@ -2,6 +2,8 @@
 const jwt = require('jsonwebtoken');
 // Mailgun for emails
 const mailgun = require('mailgun-js');
+// md5 for gravatar
+const md5 = require('md5');
 // For generating tokens
 const randomstring = require('randomstring');
 // Use the usersService for datbase operations
@@ -52,7 +54,9 @@ module.exports = {
     return res.send({
       id: user.user_id,
       nickName: user.nickname,
-      picture: user.picture,
+      picture: `https://www.gravatar.com/avatar/${md5(
+        user.email.trim().toLowerCase(),
+      )}?s=256`,
     });
   },
   create: async (req, res) => {
@@ -103,6 +107,9 @@ module.exports = {
         _id: user._id,
         email: user.email,
         nickname: user.nickname,
+        picture: `https://www.gravatar.com/avatar/${md5(
+          user.email.trim().toLowerCase(),
+        )}?s=256`,
       };
       // Sign the JWT token and populate the payload with the user email and id
       const token = jwt.sign({ user: body }, config.jwt.secret, {
@@ -146,6 +153,9 @@ module.exports = {
         _id: req.user._id,
         email: req.user.email,
         nickname: req.user.nickname,
+        picture: `https://www.gravatar.com/avatar/${md5(
+          req.user.email.trim().toLowerCase(),
+        )}?s=256`,
       });
     }
     res.status(401);
