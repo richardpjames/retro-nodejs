@@ -60,7 +60,7 @@ module.exports = {
     // Set the created time
     card.created = Date.now();
     if (!card.userId) {
-      card.userId = req.user.user_id;
+      card.userId = req.user._id;
     }
     card.boardId = ObjectId(req.params.boardId);
     card.columnId = ObjectId(req.params.columnId);
@@ -87,16 +87,18 @@ module.exports = {
     }
     // Find the new card sent in the request and the original as we need to compare
     const updatedCard = req.body;
+    // Create an object ID from the user Id
+    updatedCard.userId = ObjectID(req.body.userId);
     const originalCard = await cardsService.getById(req.params.cardId);
 
     // Changing the owner of the card is not allowed
-    if (updatedCard.userId !== originalCard.userId) {
+    if (!originalCard.userId.equals(updatedCard.userId)) {
       res.status(400);
       return res.send();
     }
     // Changing the text of the card is not allowed unless you are the owner
     if (
-      originalCard.userId !== req.user.user_id &&
+      !originalCard.userId.equals(req.user._id) &&
       updatedCard.text !== originalCard.text
     ) {
       res.status(400);

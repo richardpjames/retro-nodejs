@@ -1,5 +1,6 @@
 // Use the boardsService for datbase operations
 const teamsService = require('../services/teamsService');
+const { ObjectID } = require('mongodb');
 
 // The controller for boards
 module.exports = {
@@ -8,7 +9,7 @@ module.exports = {
     const teams = await teamsService.query({
       $or: [
         { members: { $elemMatch: { email: req.user.email } } },
-        { userId: req.user.user_id },
+        { userId: req.user._id },
       ],
     });
     res.status(200);
@@ -35,7 +36,7 @@ module.exports = {
   create: async (req, res) => {
     const team = req.body;
     // Set the user for the team
-    team.userId = req.user.user_id;
+    team.userId = req.user._id;
     // Set the created time
     team.created = Date.now();
     // Try and save the team (this will also validate the data)
@@ -52,10 +53,11 @@ module.exports = {
   update: async (req, res) => {
     // Find the new team sent in the request and the original as we need to compare
     const updatedTeam = req.body;
+    updatedTeam.userId = ObjectID(req.body.userId);
     const originalTeam = await teamsService.getById(req.params.teamId);
 
     // Changing the owner of the team is not allowed
-    if (updatedTeam.userId !== originalTeam.userId) {
+    if (!originalTeam.userId.equals(updatedTeam.userId)) {
       res.status(400);
       return res.send();
     }
@@ -77,7 +79,7 @@ module.exports = {
   remove: async (req, res) => {
     const team = await teamsService.getById(req.params.teamId);
     // Prevent users from deleting others boards
-    if (!team || team.userId !== req.user.user_id) {
+    if (!team || !team.userId.equals(ObjectID(req.user._id))) {
       res.status(404);
       return res.send();
     }

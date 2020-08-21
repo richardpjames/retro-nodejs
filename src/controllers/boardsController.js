@@ -23,12 +23,12 @@ module.exports = {
     const teams = await teamsService.query({
       $or: [
         { members: { $elemMatch: { email: req.user.email } } },
-        { userId: req.user.user_id },
+        { userId: req.user._id },
       ],
     });
     const teamIds = teams.map((team) => team._id);
     const boards = await boardsService.query({
-      $or: [{ userId: req.user.user_id }, { teamId: { $in: teamIds } }],
+      $or: [{ userId: req.user._id }, { teamId: { $in: teamIds } }],
     });
     res.status(200);
     return res.send(boards);
@@ -48,7 +48,7 @@ module.exports = {
         const teams = await teamsService.query({
           $or: [
             { members: { $elemMatch: { email: req.user.email } } },
-            { userId: req.user.user_id },
+            { userId: req.user._id },
           ],
         });
         const teamIds = teams.map((team) => team._id.toString());
@@ -99,7 +99,7 @@ module.exports = {
     board.locked = false;
     board.teamId = ObjectID(boardRequest.teamId);
     // Set the user for the board
-    board.userId = req.user.user_id;
+    board.userId = req.user._id;
     // Set the created time
     board.created = Date.now();
     // Try and save the board (this will also validate the data)
@@ -133,7 +133,7 @@ module.exports = {
 
     const board = await boardsService.getById(req.params.boardId);
     // Prevent users from updating others boards or updating locked boards
-    if (!board || board.userId !== req.user.user_id || board.locked) {
+    if (!board || !board.userId.equals(req.user._id) || board.locked) {
       res.status(400);
       return res.send();
     }
@@ -167,7 +167,7 @@ module.exports = {
   remove: async (req, res) => {
     const board = await boardsService.getById(req.params.boardId);
     // Prevent users from deleting others boards
-    if (!board || board.userId !== req.user.user_id) {
+    if (!board || !board.userId.equals(req.user._id)) {
       res.status(400);
       return res.send();
     }

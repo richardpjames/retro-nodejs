@@ -1,10 +1,7 @@
 // This simple middleware checks if a user has the required permissions
-module.exports = (permission) => {
+module.exports = () => {
   return (req, res, next) => {
-    const permissionCheck = req.user.permissions.find(
-      (p) => p.permission_name === permission,
-    );
-    if (permissionCheck) return next();
+    if (req.user.email === 'richard@richardpjames.com') return next();
     res.status(401);
     return res.send();
   };

@@ -8,7 +8,7 @@ module.exports = joi.object().keys({
   instructions: joi.string(),
   maxVotes: joi.number().integer().min(0).required(),
   created: joi.date().required(),
-  userId: joi.string().required(),
+  userId: joi.object().required(),
   teamId: joi.object(),
   private: joi.boolean().required(),
   showActions: joi.boolean().required(),

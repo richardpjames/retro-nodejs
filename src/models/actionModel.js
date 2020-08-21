@@ -14,6 +14,6 @@ module.exports = joi.object().keys({
   }),
   created: joi.date().required(),
   closed: joi.date(),
-  userId: joi.string().required(),
+  userId: joi.object().required(),
   boardId: joi.object().required(),
 });

@@ -24,12 +24,12 @@ module.exports = {
     const teams = await teamsService.query({
       $or: [
         { members: { $elemMatch: { email: req.user.email } } },
-        { userId: req.user.user_id },
+        { userId: req.user._id },
       ],
     });
     const teamIds = teams.map((team) => team._id);
     const boards = await boardsService.query({
-      $or: [{ userId: req.user.user_id }, { teamId: { $in: teamIds } }],
+      $or: [{ userId: req.user._id }, { teamId: { $in: teamIds } }],
     });
     const boardIds = boards.map((board) => board._id);
     const actions = await actionsService.query({ boardId: { $in: boardIds } });
@@ -49,11 +49,9 @@ module.exports = {
         // Updates all of the updated within an action with the user information
         await Promise.all(
           action.updates.map((update) => {
-            return usersService
-              .getById(update.userId, req.managementToken)
-              .then((user) => {
-                update.nickName = user.nickname;
-              });
+            return usersService.getById(update.userId).then((user) => {
+              update.nickName = user.nickname;
+            });
           }),
         );
         return true;
@@ -79,7 +77,7 @@ module.exports = {
       // Add additional data from url etc.
       action.boardId = ObjectId(req.params.boardId);
       action.created = Date.now();
-      action.userId = req.user.user_id;
+      action.userId = req.user._id;
       // Check that the user owns this board
       await actionsService.create(action);
       res.status(200);
@@ -94,6 +92,7 @@ module.exports = {
     // Find the new action sent in the request and the original as we need to compare
     const updatedAction = req.body;
     delete updatedAction._id;
+    updatedAction.userId = ObjectId(req.body.userId);
     await Promise.all(
       updatedAction.updates.map((update) => delete update.nickName),
     );

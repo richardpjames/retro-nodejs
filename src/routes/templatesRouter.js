@@ -16,14 +16,10 @@ templatesRouter.get('/', templatesController.getAll);
 // Get a specific template
 templatesRouter.get('/:templateId', templatesController.get);
 // This particular route needs a permissions check (only admins can amend templates)
-templatesRouter.post(
-  '/',
-  permissionCheck('create:templates'),
-  templatesController.create,
-);
+templatesRouter.post('/', permissionCheck(), templatesController.create);
 templatesRouter.put(
   '/:templateId',
-  permissionCheck('create:templates'),
+  permissionCheck(),
   templatesController.update,
 );
 

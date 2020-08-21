@@ -7,7 +7,7 @@ module.exports = joi.object().keys({
   text: joi.string().required(),
   rank: joi.string().required(),
   created: joi.date().required(),
-  userId: joi.string().required(),
+  userId: joi.object().required(),
   columnId: joi.object().required(),
   boardId: joi.object().required(),
   colour: joi.string().required(),

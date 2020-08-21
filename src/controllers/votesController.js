@@ -44,7 +44,7 @@ module.exports = {
     // Check if the user has already voted on this card
     const existingVote = await votesService.query({
       cardId: ObjectId(req.params.cardId),
-      userId: req.user.user_id,
+      userId: req.user._id,
     });
     // reject if they have
     if (existingVote.length > 0) {
@@ -61,7 +61,7 @@ module.exports = {
     }
     const totalVotes = await votesService.query({
       boardId: ObjectId(req.params.boardId),
-      userId: req.user.user_id,
+      userId: req.user._id,
     });
     // Check the votes for this user against the max allowed for the board
     if (totalVotes.length >= board.maxVotes) {
@@ -72,7 +72,7 @@ module.exports = {
     const vote = req.body;
     // Set the created time
     vote.created = Date.now();
-    vote.userId = req.user.user_id;
+    vote.userId = req.user._id;
     vote.boardId = ObjectId(req.params.boardId);
     vote.cardId = ObjectId(req.params.cardId);
     // Try and save the template (this will also validate the data)
@@ -96,7 +96,7 @@ module.exports = {
     }
     const vote = await votesService.query({
       _id: ObjectId(req.params.voteId),
-      userId: req.user.user_id,
+      userId: req.user._id,
     });
     if (vote.length === 0) {
       res.status(404);

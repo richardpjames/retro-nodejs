@@ -9,5 +9,5 @@ module.exports = joi.object().keys({
     status: joi.string().valid('invited', 'accepted'),
   }),
   created: joi.date().required(),
-  userId: joi.string().required(),
+  userId: joi.object().required(),
 });

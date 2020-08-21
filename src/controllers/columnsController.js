@@ -50,7 +50,7 @@ module.exports = {
         return res.send();
       }
       // If the user does not own the board they cannot add a column
-      if (board.userId !== req.user.user_id) {
+      if (!board.userId.equals(req.user._id)) {
         res.status(401);
         return res.send();
       }
@@ -79,7 +79,7 @@ module.exports = {
     });
 
     // Changing the column if you don't own the board is not okay
-    if (!column || !board || board.userId !== req.user.user_id) {
+    if (!column || !board || !board.userId.equals(req.user._id)) {
       res.status(404);
       return res.send();
     }
@@ -118,7 +118,7 @@ module.exports = {
       boardId: ObjectId(req.params.boardId),
     });
     // Prevent users from deleting others columns
-    if (!column || !board || board.userId !== req.user.user_id) {
+    if (!column || !board || !board.userId.equals(req.user._id)) {
       res.status(404);
       return res.send();
     }

@@ -1,5 +1,6 @@
 const moment = require('moment');
 const GhostContentAPI = require('@tryghost/content-api');
+const config = require('../config/config');
 
 const sitemapController = {
   get: async (req, res) => {
@@ -13,7 +14,7 @@ const sitemapController = {
     // This is for fetching page and blog information
     const api = new GhostContentAPI({
       url: 'https://cms.retrospectacle.io',
-      key: '86d9d3de024cf62a8d88e795aa',
+      key: config.keys.ghost,
       version: 'v3',
     });
 

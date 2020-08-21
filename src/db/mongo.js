@@ -51,6 +51,10 @@ const mongo = {
         await db.createCollection('templateColumns', {
           collation: { locale: 'en_US', strength: 2 },
         });
+        await db.createCollection('users', {
+          collation: { locale: 'en_US', strength: 2 },
+        });
+        await db.collection('users').createIndex({ email: 1 });
         callback();
       },
     );

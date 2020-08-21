@@ -2,31 +2,20 @@
 module.exports = {
   application: {
     port: process.env.PORT || 5000,
+    environment: process.env.NODE_ENV || 'production',
+    baseUrl: process.env.BASE_URL || 'https://retrospectacle.io',
   },
   database: {
     url: process.env.MONGO_URL || 'mongodb://localhost:27017',
-    redis: process.env.REDIS_URL || 'redis://localhost:6379',
   },
-  auth0: {
-    issuer: process.env.AUTH0_ISSUER,
-    audience: process.env.AUTH0_AUDIENCE,
-    jwksUri: process.env.AUTH0_JWKS_URI,
-    management: {
-      clientId: process.env.AUTH0_MGMT_CLIENT_ID,
-      clientSecret: process.env.AUTH0_MGMT_CLIENT_SECRET,
-      audience: process.env.AUTH0_MGMT_AUDIENCE,
-      grantType: process.env.AUTH0_MGMT_GRANT_TYPE,
-      tokenUrl: process.env.AUTH0_MGMT_TOKEN_URL,
-    },
+  jwt: {
+    secret: process.env.JWT_SECRET,
   },
-  paddle: {
-    vendorId: process.env.PADDLE_VENDOR_ID,
-    vendorAuthCode: process.env.PADDLE_AUTH_CODE,
-    usersURL: process.env.PADDLE_USERS_URL,
-    publicKey: process.env.PADDLE_PUBLIC_KEY.replace(/\\n/g, '\n'),
+  cors: {
+    origin: process.env.CORS_ORIGIN || 'https://retrospectacle.io',
   },
-  redis: {
-    shortExpiryTime: process.env.REDIS_EXPIRY_SHORT,
-    expiryTime: process.env.REDIS_EXPIRY,
+  keys: {
+    mailgun: process.env.MAILGUN_API_KEY,
+    ghost: process.env.GHOST_API_KEY,
   },
 };
