@@ -7,7 +7,7 @@ const sitemapController = {
     let pagesXml = '';
     // First add all static pages
     pagesXml += '<url><loc>https://retrospectacle.io/</loc></url>';
-    pagesXml += '<url><loc>https://retrospectacle.io/pricing</loc></url>';
+    pagesXml += '<url><loc>https://retrospectacle.io/features</loc></url>';
     pagesXml += '<url><loc>https://retrospectacle.io/privacy</loc></url>';
     pagesXml += '<url><loc>https://retrospectacle.io/blog</loc></url>';
 
