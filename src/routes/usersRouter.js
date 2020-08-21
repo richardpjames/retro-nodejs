@@ -12,5 +12,6 @@ usersRouter.use(authCheck);
 // Map all of the routes to controller actions
 usersRouter.get('/', usersController.getAll);
 usersRouter.get('/:userId', usersController.getById);
+usersRouter.put('/:userId', usersController.update);
 
 module.exports = usersRouter;

@@ -81,6 +81,38 @@ module.exports = {
       return res.send(error);
     }
   },
+  update: async (req, res) => {
+    const updatedUser = req.body;
+    const user = await usersService.getById(req.params.userId);
+    // If no user then return an error
+    if (!user) {
+      res.status(400);
+      return res.send();
+    }
+    // Check that the user is the current user and check their password
+    const passwordCheck = await usersService.checkPassword(
+      user,
+      updatedUser.password,
+    );
+    // If the password is incorrect or this isn't the current user
+    if (!passwordCheck || !req.user._id.equals(user._id)) {
+      res.status(400);
+      return res.send();
+    }
+    let hashPassword = false;
+    // If there is a new password then replace the old
+    if (updatedUser.newPassword) {
+      updatedUser.password = updatedUser.newPassword;
+      delete updatedUser.newPassword;
+      hashPassword = true;
+    }
+    // Update the user
+    delete updatedUser._id;
+    await usersService.update(req.params.userId, updatedUser, hashPassword);
+    // Return the updated user
+    delete updatedUser.password;
+    return res.send(updatedUser);
+  },
   login: async (req, res) => {
     try {
       // Get the request from the body
