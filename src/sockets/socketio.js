@@ -9,7 +9,7 @@ let io;
 module.exports = {
   // Attach to the provided http server
   connectServer: (server) => {
-    io = socketio(server, { path: '/api/socket' });
+    io = socketio(server);
     io.on('connection', (socket) => {
       debug('Client connected');
       socket.on('join', (room) => {
