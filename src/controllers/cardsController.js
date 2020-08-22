@@ -61,6 +61,8 @@ module.exports = {
     card.created = Date.now();
     if (!card.userId) {
       card.userId = req.user._id;
+    } else {
+      card.userId = ObjectId(card.userId);
     }
     card.boardId = ObjectId(req.params.boardId);
     card.columnId = ObjectId(req.params.columnId);
