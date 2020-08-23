@@ -4,9 +4,12 @@ const { ObjectId, ObjectID } = require('mongodb');
 const sockets = require('../sockets/socketio');
 // Services for data
 const cardsService = require('../services/cardsService');
-const usersService = require('../services/usersService');
 const votesService = require('../services/votesService');
 const boardsService = require('../services/boardsService');
+// For connection to the database
+const postgres = require('../db/postgres');
+// Get the connection pool
+const pool = postgres.pool();
 
 // Get the socket server
 const io = sockets.io();
@@ -16,31 +19,13 @@ module.exports = {
   // Get all simply returns all cards from the database for a given board
   getAll: async (req, res) => {
     try {
-      // Build up the query
-      let query = {};
-      // If there is a boardId then add it
-      if (req.params.boardId) {
-        query = { ...query, boardId: ObjectId(req.params.boardId) };
-      }
-      // If there is a columnId then add it
-      if (req.params.columnId) {
-        query = { ...query, columnId: ObjectId(req.params.columnId) };
-      }
-      const cards = await cardsService.query(query);
-      await Promise.all(
-        cards.map(async (card) => {
-          // Add user information to the cards
-          const user = await usersService.getById(
-            card.userId,
-            req.managementToken,
-          );
-          // eslint-disable-next-line no-param-reassign
-          card.nickName = user.nickname;
-          // eslint-disable-next-line no-param-reassign
-          card.picture = user.picture;
-          return card;
-        }),
+      // Get the cards based on the board and column id
+      const response = await pool.query(
+        'SELECT c.*, u.userid, u.nickname FROM cards c LEFT JOIN columns c2 ON c.columnid = c2.columnid LEFT JOIN boards b ON c2.boardid = b.boardid LEFT JOIN users u ON c.userid = u.userid WHERE b.uuid = $1',
+        [req.params.boardId],
       );
+      // Get the cards from the response
+      const cards = response.rows;
       res.status(200);
       return res.send(cards);
     } catch (error) {
@@ -50,29 +35,33 @@ module.exports = {
   },
   // For the creation of new cards
   create: async (req, res) => {
-    // Stop the creation of cards for locked boards
-    const board = await boardsService.getById(req.params.boardId);
-    if (board.locked) {
-      res.status(400);
-      return res.send();
-    }
-    const card = req.body;
-    // Set the created time
-    card.created = Date.now();
-    if (!card.userId) {
-      card.userId = req.user._id;
-    } else {
-      card.userId = ObjectId(card.userId);
-    }
-    card.boardId = ObjectId(req.params.boardId);
-    card.columnId = ObjectId(req.params.columnId);
-    // Try and save the template (this will also validate the data)
     try {
-      await cardsService.create(card);
+      const check = await pool.query(
+        'SELECT * FROM boards WHERE boardid = $1 AND locked = false',
+        [req.params.boardId],
+      );
+      // Stop the creation of cards for locked boards
+      if (check.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Try and save the card (this will also validate the data)
+      const response = await pool.query(
+        'INSERT INTO cards (text, rank, colour, userid, columnid, created, updated) VALUES ($1, $2, $3, $4, $5, now(), now()) RETURNING *',
+        [
+          req.body.text,
+          req.body.rank,
+          req.body.colour,
+          req.body.userid || req.user.userid,
+          req.body.columnId,
+        ],
+      );
+      const response2 = await pool.query(
+        'SELECT c.*, u.nickname FROM cards c INNER JOIN users u ON c.userid = u.userid WHERE cardid = $1',
+        [response.rows[0].cardid],
+      );
+      const [card] = response2.rows;
       res.status(200);
-      const user = await usersService.getById(card.userId);
-      card.nickName = user.nickname;
-      card.picture = req.user.picture;
       io.to(req.params.boardId).emit('card created', card);
       return res.send(card);
     } catch (error) {

@@ -11,7 +11,6 @@ const columnCardsRouter = express.Router({ mergeParams: true });
 // Secure all of these routes behind the auth check
 columnCardsRouter.use(authCheck);
 // Routes
-columnCardsRouter.get('/', cardsController.getAll);
 columnCardsRouter.post('/', cardsController.create);
 columnCardsRouter.put('/:cardId', cardsController.update);
 columnCardsRouter.delete('/:cardId', cardsController.remove);

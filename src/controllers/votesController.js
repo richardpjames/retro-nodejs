@@ -3,8 +3,11 @@ const { ObjectId } = require('mongodb');
 const sockets = require('../sockets/socketio');
 // Required services for writing to the database
 const votesService = require('../services/votesService');
-const usersService = require('../services/usersService');
 const boardsService = require('../services/boardsService');
+// For connection to the database
+const postgres = require('../db/postgres');
+// Get the connection pool
+const pool = postgres.pool();
 
 // Get the socket server
 const io = sockets.io();
@@ -12,26 +15,12 @@ const io = sockets.io();
 module.exports = {
   getAll: async (req, res) => {
     try {
-      // Build up the query
-      let query = {};
-      // If there is a boardId then add it
-      if (req.params.boardId) {
-        query = { ...query, boardId: ObjectId(req.params.boardId) };
-      }
-      const votes = await votesService.query(query);
-      await Promise.all(
-        votes.map(async (vote) => {
-          // Add user information to the cards
-          const user = await usersService.getById(
-            vote.userId,
-            req.managementToken,
-          );
-          // eslint-disable-next-line no-param-reassign
-          vote.nickName = user.nickname;
-          // eslint-disable-next-line no-param-reassign
-          return vote;
-        }),
+      // Get the data from the database
+      const response = await pool.query(
+        'SELECT v.*, u.nickname FROM votes v INNER JOIN cards c ON v.cardid = c.cardid INNER JOIN columns c2 ON c.columnid = c2.columnid INNER JOIN boards b ON c2.boardid = b.boardid INNER JOIN users u ON v.userid = u.userid WHERE b.uuid = $1',
+        [req.params.boardId],
       );
+      const votes = response.rows;
       res.status(200);
       return res.send(votes);
     } catch (error) {
@@ -64,7 +53,7 @@ module.exports = {
       userId: req.user._id,
     });
     // Check the votes for this user against the max allowed for the board
-    if (totalVotes.length >= board.maxVotes) {
+    if (totalVotes.length >= board.maxvotes) {
       res.status(400);
       return res.send();
     }
@@ -79,7 +68,7 @@ module.exports = {
     try {
       await votesService.create(vote);
       res.status(200);
-      vote.nickName = req.user.nickname;
+      vote.nickname = req.user.nickname;
       io.to(req.params.boardId).emit('vote created', vote);
       return res.send(vote);
     } catch (error) {

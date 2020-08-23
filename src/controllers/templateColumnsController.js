@@ -1,28 +1,29 @@
-// Use the templatesService for datbase operations
-const { ObjectId } = require('mongodb');
-const templateColumnsService = require('../services/templateColumnsService');
+// Get connection to the database
+const postgres = require('../db/postgres');
+// The connection pool
+const pool = postgres.pool();
 
 // The controller for templates
 module.exports = {
   // Get all simply returns all templates from the database
   getAll: async (req, res) => {
-    const templateComlumns = await templateColumnsService.query({
-      templateId: ObjectId(req.params.templateId),
-    });
+    const response = await pool.query(
+      'SELECT * FROM templatecolumns WHERE tempalteid = $1',
+      [req.params.templateId],
+    );
+    const templateComlumns = response.rows;
     res.status(200);
     return res.send(templateComlumns);
   },
   // For the creation of new templates
   create: async (req, res) => {
-    const templateColumn = req.body;
-    // Set the created time
-    templateColumn.created = Date.now();
-    templateColumn.templateId = ObjectId(req.params.templateId);
-    // Try and save the template (this will also validate the data)
     try {
-      await templateColumnsService.create(templateColumn);
+      const response = await pool.query(
+        'INSERT INTO templatecolumns (title, rank, templateid, created, updated) VALUES ($1, $2, $3, now(), now()) RETURNING *',
+        [req.body.title, req.body.rank, req.params.templateId],
+      );
       res.status(200);
-      return res.send(templateColumn);
+      return res.send(response.rows[0]);
     } catch (error) {
       res.status(400);
       return res.send(error);

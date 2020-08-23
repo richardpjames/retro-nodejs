@@ -8,15 +8,23 @@ const teamsService = require('../services/teamsService');
 const boardsService = require('../services/boardsService');
 const usersService = require('../services/usersService');
 
+// For connection to the database
+const postgres = require('../db/postgres');
+// Get the connection pool
+const pool = postgres.pool();
+
 // Get the socket server
 const io = sockets.io();
 
 module.exports = {
   // Get all simply returns all boards from the database
   getAll: async (req, res) => {
-    const actions = await actionsService.query({
-      boardId: ObjectId(req.params.boardId),
-    });
+    // Get all actions for the board
+    const response = await pool.query(
+      'SELECT a.* FROM actions a INNER JOIN boards b ON a.boardid = b.boardid WHERE b.uuid = $1',
+      [req.params.boardId],
+    );
+    const actions = response.rows;
     res.status(200);
     return res.send(actions);
   },
@@ -50,7 +58,7 @@ module.exports = {
         await Promise.all(
           action.updates.map((update) => {
             return usersService.getById(update.userId).then((user) => {
-              update.nickName = user.nickname;
+              update.nickname = user.nickname;
             });
           }),
         );
@@ -94,7 +102,7 @@ module.exports = {
     delete updatedAction._id;
     updatedAction.userId = ObjectId(req.body.userId);
     await Promise.all(
-      updatedAction.updates.map((update) => delete update.nickName),
+      updatedAction.updates.map((update) => delete update.nickname),
     );
     // If allowed uperation then convert strings to object ids
     updatedAction.boardId = ObjectId(updatedAction.boardId);

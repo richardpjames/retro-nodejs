@@ -8,6 +8,6 @@ module.exports = joi.object().keys({
   templateId: joi.string().required(),
   teamId: joi.string(),
   private: joi.boolean().required(),
-  showActions: joi.boolean().required(),
-  showInstructions: joi.boolean().required(),
+  showactions: joi.boolean().required(),
+  showinstructions: joi.boolean().required(),
 });

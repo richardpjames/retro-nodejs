@@ -10,7 +10,6 @@ const sockets = require('../sockets/socketio');
 // Services for data
 const columnsService = require('../services/columnsService');
 const boardsService = require('../services/boardsService');
-const cardsService = require('../services/cardsService');
 
 // Get the socket server
 const io = sockets.io();
@@ -51,23 +50,22 @@ module.exports = {
   },
   create: async (req, res) => {
     try {
-      // Get the column from the request
-      const column = req.body;
-      column.boardId = ObjectId(req.params.boardId);
-      column.created = Date.now();
-      // Check that the user owns this board
-      const board = await boardsService.getById(req.params.boardId);
-      // Stop the creation of columns for locked boards
-      if (board.locked) {
+      // Check the user owns this board
+      const checkResponse = await pool.query(
+        'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
+        [req.params.boardId, req.user.userid],
+      );
+      // If there is no board (or it was locked)
+      if (checkResponse.rowCount === 0) {
         res.status(400);
         return res.send();
       }
-      // If the user does not own the board they cannot add a column
-      if (!board.userId.equals(req.user._id)) {
-        res.status(401);
-        return res.send();
-      }
-      await columnsService.create(column);
+      // Insert the column
+      const response = await pool.query(
+        'INSERT INTO columns (title, rank, boardid, created, updated) values ($1, $2, $3, now(), now()) RETURNING *',
+        [req.body.title, req.body.rank, req.params.boardId],
+      );
+      const [column] = response.rows;
       res.status(200);
       io.to(req.params.boardId).emit('column created', column);
       return res.send(column);
@@ -77,36 +75,24 @@ module.exports = {
     }
   },
   update: async (req, res) => {
-    // Find the new card sent in the request and the original as we need to compare
-    const updatedColumn = req.body;
-    const board = await boardsService.getById(req.params.boardId);
-    // Stop the update of columns for locked boards
-    if (board.locked) {
-      res.status(400);
-      return res.send();
-    }
-    // Check that there is a column for this board with the id
-    const column = await columnsService.query({
-      _id: ObjectId(req.params.columnId),
-      boardId: ObjectId(req.params.boardId),
-    });
-
-    // Changing the column if you don't own the board is not okay
-    if (!column || !board || !board.userId.equals(req.user._id)) {
-      res.status(404);
-      return res.send();
-    }
-    // If allowed uperation then convert strings to object ids
-    updatedColumn.boardId = ObjectId(req.params.boardId);
-    // Set the created date based on the existing
-    updatedColumn.created = column[0].created;
-    // Remove the exting id if present
-    delete updatedColumn._id;
     try {
-      // Update the card
-      await columnsService.update(req.params.columnId, updatedColumn);
-      // Set the Id for sending back
-      updatedColumn._id = ObjectId(req.params.columnId);
+      const response = await pool.query(
+        'UPDATE columns c SET title = $1, rank = $2, updated = now() FROM boards b WHERE b.boardid = c.boardid AND c.columnid = $3 AND b.locked = false AND b.boardid = $4 AND b.userid = $5 RETURNING c.*',
+        [
+          req.body.title,
+          req.body.rank,
+          req.params.columnId,
+          req.params.boardId,
+          req.user.userid,
+        ],
+      );
+      // If nothing was update then send an error
+      if (response.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Find the new card sent in the request and the original as we need to compare
+      const [updatedColumn] = response.rows;
       // After all affected cards are moved we can return the updated card
       res.status(200);
       io.to(req.params.boardId).emit('column updated', updatedColumn);
@@ -118,26 +104,21 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
-    // Find the board to check ownership
-    const board = await boardsService.getById(req.params.boardId);
-    // Stop the removal of columns for locked boards
-    if (board.locked) {
+    // Check the user owns this board
+    const checkResponse = pool.query(
+      'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
+      [req.params.boardId, req.user.userid],
+    );
+    // If there is no board (or it was locked)
+    if (checkResponse.rowCount === 0) {
       res.status(400);
       return res.send();
     }
-    // Check that there is a column for this board with the id
-    const column = await columnsService.query({
-      _id: ObjectId(req.params.columnId),
-      boardId: ObjectId(req.params.boardId),
-    });
-    // Prevent users from deleting others columns
-    if (!column || !board || !board.userId.equals(req.user._id)) {
-      res.status(404);
-      return res.send();
-    }
-    // Remove the column and any cards
-    await columnsService.remove(req.params.columnId);
-    await cardsService.removeQuery({ columnId: ObjectId(req.params.columnId) });
+    // Remove the column (other tables cascade)
+    await pool.query(
+      'DELETE FROM columns WHERE columnid = $1 and boardid = $2',
+      [req.params.columnId, req.params.boardId],
+    );
     io.to(req.params.boardId).emit('column deleted', req.params.columnId);
     res.status(204);
     return res.send();

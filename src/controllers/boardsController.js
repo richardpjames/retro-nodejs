@@ -47,7 +47,7 @@ module.exports = {
         // Get the teams from the query result
         const teams = response2.rows;
         const teamIds = teams.map((team) => team.teamid);
-        if (!teamIds.includes(board.teamid.toString())) {
+        if (!teamIds.includes(board.teamid)) {
           res.status(401);
           return res.send();
         }
@@ -89,9 +89,9 @@ module.exports = {
           template.instructions,
           template.maxvotes,
           req.body.private || false,
-          req.body.showActions || false,
-          req.body.allowVotes || false,
-          req.body.showInstructions || false,
+          req.body.showactions || false,
+          req.body.allowvotes || false,
+          req.body.showinstructions || false,
           req.body.locked || false,
           req.user.userid,
           req.body.teamId,
@@ -119,7 +119,7 @@ module.exports = {
   update: async (req, res) => {
     // Get the board from the database
     const response = await pool.query(
-      'SELECT * FROM boards WHERE boardid = $ AND userid = $2 AND locked = false',
+      'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
       [req.params.boardId, req.user.userid],
     );
     // Prevent users from updating others boards or updating locked boards
@@ -127,21 +127,20 @@ module.exports = {
       res.status(400);
       return res.send();
     }
-    // Get the board from the response
-    const [board] = response.rows;
     try {
       // Update the board
       const response2 = await pool.query(
         'UPDATE boards SET name = $1, description = $2, instructions = $3, maxvotes = $4, private = $5, showactions = $6, allowvotes = $7, showinstructions = $8, locked = $9, updated = now() WHERE boardid = $10 RETURNING *',
         [
-          req.body.description || board.description,
-          req.body.instructions || board.instructions,
-          req.body.maxVotes || board.maxvotes,
-          req.body.private || board.private,
-          req.body.showActions || board.showactions,
-          req.body.allowVotes || board.allowvotes,
-          req.body.showInstructions || board.showinstructions,
-          req.body.locked || board.locked,
+          req.body.name,
+          req.body.description,
+          req.body.instructions,
+          req.body.maxvotes,
+          req.body.private,
+          req.body.showactions,
+          req.body.allowvotes,
+          req.body.showinstructions,
+          req.body.locked,
           req.params.boardId,
         ],
       );
@@ -159,7 +158,7 @@ module.exports = {
   remove: async (req, res) => {
     // Delete the board (cascading deletes remove the rest)
     const response = await pool.query(
-      'DELETE FROM boards WHERE uuid = $1 and userid = $2',
+      'DELETE FROM boards WHERE boardid = $1 and userid = $2',
       [req.params.boardId, req.user.userid],
     );
     // If nothing was deleted

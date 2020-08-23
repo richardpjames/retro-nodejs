@@ -36,7 +36,7 @@ module.exports = {
           req.body.name,
           req.body.description,
           req.body.instructions,
-          req.body.maxVotes,
+          req.body.maxvotes,
         ],
       );
       res.status(200);
@@ -60,15 +60,14 @@ module.exports = {
         return res.send();
       }
       // Get the team from the query
-      const [template] = result.rows;
       // Update the template, falling back on any previous values
       const result2 = await pool.query(
         'UPDATE templates SET name = $1, description = $2, instructions = $3, maxvotes = $4, updated = now() WHERE templateid = $5 RETURNING *',
         [
-          req.body.name || template.name,
-          req.body.description || template.description,
-          req.body.instructions || template.instructions,
-          req.body.maxVotes || template.maxvotes,
+          req.body.name,
+          req.body.description,
+          req.body.instructions,
+          req.body.maxvotes,
           req.params.templateId,
         ],
       );
