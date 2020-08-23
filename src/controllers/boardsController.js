@@ -1,17 +1,11 @@
-// For generating mongo object Ids
-const { ObjectID } = require('mongodb');
+// For generating uuids
+const { v1: uuidv1 } = require('uuid');
 // For broadcasting success to clients
 const sockets = require('../sockets/socketio');
-// Use the boardsService for datbase operations
-const boardsService = require('../services/boardsService');
-const templatesService = require('../services/templatesService');
-const columnsService = require('../services/columnsService');
-const templateColumnsService = require('../services/templateColumnsService');
-const cardsService = require('../services/cardsService');
-const teamsService = require('../services/teamsService');
-const votesService = require('../services/votesService');
-const createBoardModel = require('../models/createBoardModel');
-const actionsService = require('../services/actionsService');
+// For connection to the database
+const postgres = require('../db/postgres');
+// Get the connection pool
+const pool = postgres.pool();
 
 // Get the socket server
 const io = sockets.io();
@@ -20,39 +14,40 @@ const io = sockets.io();
 module.exports = {
   // Get all simply returns all boards from the database
   getAll: async (req, res) => {
-    const teams = await teamsService.query({
-      $or: [
-        { members: { $elemMatch: { email: req.user.email } } },
-        { userId: req.user._id },
-      ],
-    });
-    const teamIds = teams.map((team) => team._id);
-    const boards = await boardsService.query({
-      $or: [{ userId: req.user._id }, { teamId: { $in: teamIds } }],
-    });
+    // Get all from the database
+    const response = await pool.query(
+      'SELECT DISTINCT b.* FROM boards b LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON t.teamid = tm.teamid WHERE b.userid = $1 OR t.userid = $2 OR tm.email = $3',
+      [req.user.userid, req.user.userid, req.user.email],
+    );
     res.status(200);
-    return res.send(boards);
+    return res.send(response.rows);
   },
   // Get a single board from the ID in the params
   get: async (req, res) => {
     try {
-      const board = await boardsService.getById(req.params.boardId);
+      // Get from the database
+      const response = await pool.query(
+        'SELECT * FROM boards WHERE uuid = $1',
+        [req.params.boardId],
+      );
       // If we can't find the board then send a 404
-      if (!board) {
+      if (response.rowCount === 0) {
         res.status(404);
         res.send();
       }
+      // Pull the board from the response
+      const [board] = response.rows;
       // If the board is private then additional checks are needed
       if (board.private) {
         // Find which teams this user is in
-        const teams = await teamsService.query({
-          $or: [
-            { members: { $elemMatch: { email: req.user.email } } },
-            { userId: req.user._id },
-          ],
-        });
-        const teamIds = teams.map((team) => team._id.toString());
-        if (!teamIds.includes(board.teamId.toString())) {
+        const response2 = await pool.query(
+          'SELECT t.* FROM teams t LEFT JOIN teammembers tm ON t.teamid = t.teamid WHERE t.userid = $1 or tm.email = $2',
+          [req.user.userid, req.user.email],
+        );
+        // Get the teams from the query result
+        const teams = response2.rows;
+        const teamIds = teams.map((team) => team.teamid);
+        if (!teamIds.includes(board.teamid.toString())) {
           res.status(401);
           return res.send();
         }
@@ -67,96 +62,93 @@ module.exports = {
   },
   // For the creation of new boards
   create: async (req, res) => {
-    const boardRequest = req.body;
-    // Check that we have all required fields
-    const errors = await createBoardModel.validate(boardRequest);
-    // If there are any errors then return 400
-    if (errors.error) {
-      res.status(400);
-      return res.send(errors.error);
-    }
-    // Get the template for the board
-    const template = await templatesService.getById(boardRequest.templateId);
-    const templateColumns = await templateColumnsService.query({
-      templateId: ObjectID(boardRequest.templateId),
-    });
-    if (!template) {
+    const templateResponse = await pool.query(
+      'SELECT * FROM templates WHERE templateid = $1',
+      [req.body.templateId],
+    );
+    const templateColumnResponse = await pool.query(
+      'SELECT * FROM templatecolumns WHERE templateid = $1',
+      [req.body.templateId],
+    );
+    // Check that there was a template
+    if (templateResponse.rowCount === 0) {
       res.status(400);
       res.send('Template not found');
     }
-    // Create the new board
-    const board = { ...template };
-    // Remove the copied ID
-    // eslint-disable-next-line no-underscore-dangle
-    delete board._id;
-    // Set the board up from the request
-    board.name = boardRequest.name;
-    board.description = boardRequest.description;
-    board.private = boardRequest.private;
-    board.showActions = boardRequest.showActions;
-    board.showInstructions = boardRequest.showInstructions;
-    board.allowVotes = false;
-    board.locked = false;
-    board.teamId = ObjectID(boardRequest.teamId);
-    // Set the user for the board
-    board.userId = req.user._id;
-    // Set the created time
-    board.created = Date.now();
+    // Pull the template from the response
+    const [template] = templateResponse.rows;
     // Try and save the board (this will also validate the data)
     try {
-      const result = await boardsService.create(board);
+      const uuid = uuidv1();
+      const insertBoardReponse = await pool.query(
+        'INSERT INTO boards (uuid, name, description, instructions, maxvotes, private, showactions, allowvotes, showinstructions, locked, userid, teamid, created, updated) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now(), now()) RETURNING *',
+        [
+          uuid,
+          req.body.name,
+          req.body.description,
+          template.instructions,
+          template.maxvotes,
+          req.body.private || false,
+          req.body.showActions || false,
+          req.body.allowVotes || false,
+          req.body.showInstructions || false,
+          req.body.locked || false,
+          req.user.userid,
+          req.body.teamId,
+        ],
+      );
+      // Get the Id of the inserted board
+      const boardId = insertBoardReponse.rows[0].boardid;
       // Now that the board is created we create the columns
-      templateColumns.map(async (templateColumn) => {
-        const column = { ...templateColumn };
-        // Remove the uneeded ids
-        // eslint-disable-next-line no-underscore-dangle
-        delete column._id;
-        delete column.templateId;
-        // Add the created and the inserted id
-        column.created = Date.now();
-        column.boardId = result.insertedId;
-        // Save this column and move onto the next
-        await columnsService.create(column);
-      });
+      await Promise.all(
+        templateColumnResponse.rows.map(async (column) => {
+          await pool.query(
+            'INSERT INTO columns (title, rank, boardid, created, updated) VALUES ($1, $2, $3, now(), now())',
+            [column.title, column.rank, boardId],
+          );
+        }),
+      );
       // If everything is inserted then return
       res.status(200);
-      return res.send(board);
+      return res.send(insertBoardReponse.rows[0]);
     } catch (error) {
       res.status(400);
       return res.send(error);
     }
   },
   update: async (req, res) => {
-    // Get the updated board from the request but remove the Id
-    const updatedBoard = req.body;
-    delete updatedBoard._id;
-
-    const board = await boardsService.getById(req.params.boardId);
+    // Get the board from the database
+    const response = await pool.query(
+      'SELECT * FROM boards WHERE boardid = $ AND userid = $2 AND locked = false',
+      [req.params.boardId, req.user.userid],
+    );
     // Prevent users from updating others boards or updating locked boards
-    if (!board || !board.userId.equals(req.user._id) || board.locked) {
+    if (response.rowCount === 0) {
       res.status(400);
       return res.send();
     }
-    // If the instructions are empty them just remove
-    if (updatedBoard.instructions === '') {
-      delete updatedBoard.instructions;
-    }
-
-    // Do not allow changing the created date
-    updatedBoard.created = board.created;
-    // Do not allow changing the user
-    updatedBoard.userId = board.userId;
-    // Set the team to an objectID
-    updatedBoard.teamId = ObjectID(updatedBoard.teamId);
+    // Get the board from the response
+    const [board] = response.rows;
     try {
       // Update the board
-      await boardsService.update(req.params.boardId, updatedBoard);
+      const response2 = await pool.query(
+        'UPDATE boards SET name = $1, description = $2, instructions = $3, maxvotes = $4, private = $5, showactions = $6, allowvotes = $7, showinstructions = $8, locked = $9, updated = now() WHERE boardid = $10 RETURNING *',
+        [
+          req.body.description || board.description,
+          req.body.instructions || board.instructions,
+          req.body.maxVotes || board.maxvotes,
+          req.body.private || board.private,
+          req.body.showActions || board.showactions,
+          req.body.allowVotes || board.allowvotes,
+          req.body.showInstructions || board.showinstructions,
+          req.body.locked || board.locked,
+          req.params.boardId,
+        ],
+      );
+      const [updatedBoard] = response2.rows;
       // After all affected cards are moved we can return the updated card
       res.status(200);
-      io.to(req.params.boardId).emit('board updated', {
-        ...updatedBoard,
-        _id: ObjectID(req.params.boardId),
-      });
+      io.to(req.params.boardId).emit('board updated', updatedBoard);
       return res.send(updatedBoard);
       // Return any errors back to the user
     } catch (error) {
@@ -165,18 +157,17 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
-    const board = await boardsService.getById(req.params.boardId);
-    // Prevent users from deleting others boards
-    if (!board || !board.userId.equals(req.user._id)) {
+    // Delete the board (cascading deletes remove the rest)
+    const response = await pool.query(
+      'DELETE FROM boards WHERE uuid = $1 and userid = $2',
+      [req.params.boardId, req.user.userid],
+    );
+    // If nothing was deleted
+    if (response.rowCount === 0) {
       res.status(400);
       return res.send();
     }
-    // Remove the board and any columns, cards and votes
-    await boardsService.remove(req.params.boardId);
-    await columnsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
-    await cardsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
-    await votesService.removeQuery({ boardId: ObjectID(req.params.boardId) });
-    await actionsService.removeQuery({ boardId: ObjectID(req.params.boardId) });
+    // Otherwise send an empty response
     res.status(204);
     return res.send();
   },

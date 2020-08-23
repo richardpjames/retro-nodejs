@@ -1,31 +1,35 @@
-// Use the boardsService for datbase operations
+// Get the connection to the database
+const postgres = require('../db/postgres');
+// Get the database pool
+const pool = postgres.pool();
 const teamsService = require('../services/teamsService');
-const { ObjectID } = require('mongodb');
 
 // The controller for boards
 module.exports = {
   // Get all simply returns all teams from the database for this user
   getAll: async (req, res) => {
-    const teams = await teamsService.query({
-      $or: [
-        { members: { $elemMatch: { email: req.user.email } } },
-        { userId: req.user._id },
-      ],
-    });
+    const response = await pool.query(
+      'SELECT t.* FROM teams t LEFT JOIN teammembers tm ON t.teamid = t.teamid WHERE t.userid = $1 or tm.email = $2',
+      [req.user.userid, req.user.email],
+    );
     res.status(200);
-    return res.send(teams);
+    return res.send(response.rows);
   },
   // Get a single board from the ID in the params
   get: async (req, res) => {
     try {
-      const team = await teamsService.getById(req.params.teamId);
+      // Get the team
+      const response = await pool.query(
+        'SELECT * FROM teams WHERE teamid = $1',
+        [req.params.teamId],
+      );
       // If we can't find the board then send a 404
-      if (!team) {
+      if (response.rowCount === 0) {
         res.status(404);
-        res.send();
+        return res.send();
       }
       res.status(200);
-      return res.send(team);
+      return res.send(response.rows[0]);
       // If any errors, then catch and throw 500
     } catch (error) {
       res.status(500);
@@ -34,57 +38,56 @@ module.exports = {
   },
   // For the creation of new teams
   create: async (req, res) => {
-    const team = req.body;
-    // Set the user for the team
-    team.userId = req.user._id;
-    // Set the created time
-    team.created = Date.now();
-    // Try and save the team (this will also validate the data)
+    // Try and save the team
     try {
-      await teamsService.create(team);
+      const response = await pool.query(
+        'INSERT INTO teams (name, userid, created, updated) VALUES ($1, $2, now(), now()) RETURNING *',
+        [req.body.name, req.user.userid],
+      );
       // If everything is inserted then return
       res.status(200);
-      return res.send(team);
+      return res.send(response.rows[0]);
     } catch (error) {
       res.status(400);
       return res.send(error);
     }
   },
   update: async (req, res) => {
-    // Find the new team sent in the request and the original as we need to compare
-    const updatedTeam = req.body;
-    updatedTeam.userId = ObjectID(req.body.userId);
-    const originalTeam = await teamsService.getById(req.params.teamId);
-
-    // Changing the owner of the team is not allowed
-    if (!originalTeam.userId.equals(updatedTeam.userId)) {
-      res.status(400);
-      return res.send();
-    }
-
-    // Remove the Id from the updated team
-    delete updatedTeam._id;
-
     try {
-      // Update the teams
-      await teamsService.update(req.params.teamId, updatedTeam);
-      res.status(200);
-      return res.send(updatedTeam);
-      // Return any errors back to the user
+      // Get the team from the database
+      const result = await pool.query('SELECT * FROM teams WHERE teamid = $1', [
+        req.params.teamId,
+      ]);
+      // If no team then return an error
+      if (result.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Get the team from the query
+      const [team] = result.rows;
+      // Update the team, falling back on any previous values
+      const result2 = await pool.query(
+        'UPDATE teams SET name = $1, updated = now() WHERE teamid = $3 RETURNING *',
+        [req.body.name || team.name, req.params.teamId],
+      );
+      return res.send(result2.rows[0]);
     } catch (error) {
       res.status(400);
       return res.send(error);
     }
   },
   remove: async (req, res) => {
-    const team = await teamsService.getById(req.params.teamId);
-    // Prevent users from deleting others boards
-    if (!team || !team.userId.equals(ObjectID(req.user._id))) {
+    // Remove the team (checking userid)
+    const response = await pool.query(
+      'DELETE FROM teams WHERE teamid = $1 AND userid = $2',
+      [req.params.teamId, req.user.userid],
+    );
+    // Check that any teams were actually deleted
+    if (response.rowCount === 0) {
       res.status(404);
       return res.send();
     }
-    // Remove the team and any columns
-    await teamsService.remove(req.params.teamId);
+    // If all okay return 204
     res.status(204);
     return res.send();
   },

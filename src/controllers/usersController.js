@@ -67,21 +67,11 @@ module.exports = {
   },
   create: async (req, res) => {
     try {
-      // Check that the user does not already exist
-      const check = await pool.query(
-        'SELECT * FROM users WHERE lower(email) = lower($1)',
-        [req.body.email],
-      );
-      // log this out
-      if (check.rowCount >= 1) {
-        res.status(400);
-        return res.send('User already exists');
-      }
       // Hash the password
       req.body.password = await bcrypt.hash(req.body.password, 10);
       // Save the information provided by the user to the the database
       const result = await pool.query(
-        'INSERT INTO users (email, nickname, password) VALUES ($1, $2, $3) RETURNING userid, email, nickname',
+        'INSERT INTO users (email, nickname, password, created, updated) VALUES (lower($1), $2, $3, now(), now()) RETURNING userid, email, nickname',
         [req.body.email, req.body.nickname, req.body.password],
       );
       // Send back the created user
@@ -123,7 +113,7 @@ module.exports = {
       }
       // Update the user, falling back on any previous values
       const result2 = await pool.query(
-        'UPDATE users SET nickname = $1, password = $2 WHERE userid = $3 RETURNING userid, email, nickname',
+        'UPDATE users SET nickname = $1, password = $2, updated = now() WHERE userid = $3 RETURNING userid, email, nickname',
         [
           req.body.nickname || user.nickname,
           req.body.password || user.password,
@@ -244,7 +234,7 @@ module.exports = {
     try {
       // Update the user in the database
       await pool.query(
-        'UPDATE users SET resettoken = $1 WHERE lower(email) = lower($2)',
+        'UPDATE users SET resettoken = $1, updated = now() WHERE lower(email) = lower($2)',
         [user.resetToken, user.email],
       );
       // Send an email to the user with a reset link
@@ -295,7 +285,7 @@ module.exports = {
     try {
       // If all okay then update the password and remove the token
       await pool.query(
-        'UPDATE users SET password = $1, resettoken = null WHERE userid = $2',
+        'UPDATE users SET password = $1, resettoken = null, updated = now() WHERE userid = $2',
         [hashPassword, userId],
       );
       return res.send();

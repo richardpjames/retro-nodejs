@@ -1,5 +1,10 @@
 // Use the templatesService for datbase operations
 const { ObjectId } = require('mongodb');
+// For connection to the database
+const postgres = require('../db/postgres');
+// Get the connection pool
+const pool = postgres.pool();
+
 // For broadcasting success to clients
 const sockets = require('../sockets/socketio');
 // Services for data
@@ -14,20 +19,28 @@ const io = sockets.io();
 module.exports = {
   // Get all simply returns all columns from the database for a given board
   getAll: async (req, res) => {
-    const cards = await columnsService.query({
-      boardId: ObjectId(req.params.boardId),
-    });
+    const response = await pool.query(
+      'SELECT c.* FROM columns c INNER JOIN boards b ON c.boardid = b.boardid WHERE b.uuid = $1',
+      [req.params.boardId],
+    );
+    const columns = response.rows;
     res.status(200);
-    return res.send(cards);
+    return res.send(columns);
   },
   get: async (req, res) => {
     try {
-      const column = await columnsService.getById(req.params.columnId);
-      // If we can't find the column then send a 404
-      if (!column) {
+      // Find the column
+      const response = await pool.query(
+        'SELECT * FROM columns WHERE columnid = $1',
+        [req.params.columnId],
+      );
+      // If nothing found then 404
+      if (response.rowCount === 0) {
         res.status(404);
-        res.send();
+        return res.send();
       }
+      const [column] = response.rows;
+      // Send the column
       res.status(200);
       return res.send(column);
       // If any errors, then catch and throw 500

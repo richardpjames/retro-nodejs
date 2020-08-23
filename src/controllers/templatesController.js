@@ -1,36 +1,46 @@
-// Use the templatesService for datbase operations
-const templatesService = require('../services/templatesService');
+// Get connection to the database
+const postgres = require('../db/postgres');
+// The connection pool
+const pool = postgres.pool();
 
 // The controller for templates
 module.exports = {
   // Get all simply returns all templates from the database
   getAll: async (req, res) => {
-    const templates = await templatesService.getAll();
+    const result = await pool.query('SELECT * FROM templates');
     res.status(200);
-    return res.send(templates);
+    return res.send(result.rows);
   },
   // Get a single board from the ID in the params
   get: async (req, res) => {
-    const template = await templatesService.getById(req.params.templateId);
+    const result = await pool.query(
+      'SELECT * FROM templates WHERE templateid = $1',
+      [req.params.templateId],
+    );
     // Return 404 if the template is not found
-    if (!template) {
+    if (result.rowCount === 0) {
       res.status(404);
       return res.send();
     }
     // Otherwise return the template and a 200
     res.status(200);
-    return res.send(template);
+    return res.send(result.rows[0]);
   },
   // For the creation of new templates
   create: async (req, res) => {
-    const template = req.body;
-    // Set the created time
-    template.created = Date.now();
     // Try and save the template (this will also validate the data)
     try {
-      await templatesService.create(template);
+      const result = await pool.query(
+        'INSERT INTO templates (name, description, instructions, maxvotes, created, updated) VALUES ($1, $2, $3, $4, now(), now()) RETURNING *',
+        [
+          req.body.name,
+          req.body.description,
+          req.body.instructions,
+          req.body.maxVotes,
+        ],
+      );
       res.status(200);
-      return res.send(template);
+      return res.send(result.rows[0]);
     } catch (error) {
       res.status(400);
       return res.send(error);
@@ -38,21 +48,31 @@ module.exports = {
   },
   // Update existing template
   update: async (req, res) => {
-    // Get the template and remove the Id
-    const updatedTemplate = req.body;
-    delete updatedTemplate._id;
-    // Get the original template
-    const template = await templatesService.getById(req.params.templateId);
-    // Do not allow changing the created date
-    updatedTemplate.created = template.created;
-    // Try and save
     try {
-      // Update the board
-      await templatesService.update(req.params.templateId, updatedTemplate);
-      // After all affected cards are moved we can return the updated card
-      res.status(200);
-      return res.send(updatedTemplate);
-      // Return any errors back to the user
+      // Get the template from the database
+      const result = await pool.query(
+        'SELECT * FROM templates WHERE templateid = $1',
+        [req.params.templateId],
+      );
+      // If no template then return an error
+      if (result.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Get the team from the query
+      const [template] = result.rows;
+      // Update the template, falling back on any previous values
+      const result2 = await pool.query(
+        'UPDATE templates SET name = $1, description = $2, instructions = $3, maxvotes = $4, updated = now() WHERE templateid = $5 RETURNING *',
+        [
+          req.body.name || template.name,
+          req.body.description || template.description,
+          req.body.instructions || template.instructions,
+          req.body.maxVotes || template.maxvotes,
+          req.params.templateId,
+        ],
+      );
+      return res.send(result2.rows[0]);
     } catch (error) {
       res.status(400);
       return res.send(error);
