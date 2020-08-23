@@ -15,11 +15,14 @@ const debug = require('debug')('app');
 const config = require('./config/config');
 // Database utlities
 const mongo = require('./db/mongo');
+const postgres = require('./db/postgres');
 // Socket.io for realtime updates
 const socketio = require('./sockets/socketio');
 
-// Connect to mongo and redis
+// Connect to mongo
 mongo.connectToServer(() => {
+  // Connect to postgres
+  postgres.connectToServer();
   // Then create the web server
   const app = express();
   // Set up CORS settings

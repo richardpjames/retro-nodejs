@@ -1,133 +1,159 @@
 // Jwt for authorisation
 const jwt = require('jsonwebtoken');
+// For hasing passwords
+const bcrypt = require('bcrypt');
 // Mailgun for emails
 const mailgun = require('mailgun-js');
 // md5 for gravatar
 const md5 = require('md5');
 // For generating tokens
 const randomstring = require('randomstring');
-// Use the usersService for datbase operations
-const usersService = require('../services/usersService');
 // Get configuration
 const config = require('../config/config');
+// Get the pool for the database
+const postgres = require('../db/postgres');
+// Get the pool for the database
+const pool = postgres.pool();
 
 // The controller for users
 module.exports = {
   // For getting all users
   getAll: async (req, res) => {
-    const users = await usersService.getAll();
-    if (!users) {
+    // Get all users
+    const result = await pool.query(
+      'SELECT userid, nickname, email FROM users',
+    );
+    // If no users returned then send 404
+    if (result.rowCount === 0) {
       res.status(404);
       return res.send();
     }
     // If we have users then don't expose anything untoward, just the id,  nicknames and pictures
     const returnedUsers = [];
     await Promise.all(
-      users.map((user) =>
+      result.rows.map((user) => {
+        const md5email = md5(user.email.trim().toLowerCase());
         returnedUsers.push({
-          id: user.user_id,
+          userid: user.userid,
           nickname: user.nickname,
-          picture: user.picture,
-        }),
-      ),
+          picture: `https://www.gravatar.com/avatar/${md5email}?s=256`,
+        });
+        return true;
+      }),
     );
     res.status(200);
     return res.send(returnedUsers);
   },
   // For getting a single user
   getById: async (req, res) => {
-    const user = await usersService.getById(
-      req.params.userId,
-      req.managementToken,
+    const result = await pool.query(
+      'SELECT userid, nickname, email FROM users WHERE userid = $1',
+      [req.params.userId],
     );
-    if (!user) {
+    if (result.rowCount === 0) {
       res.status(404);
       return res.send();
     }
-    // If the user is requesting their own details then send all
-    if (user.user_id === req.user._id) {
-      res.status(200);
-      return res.send({ id: user.user_id, ...user });
-    }
-    // Otherwise send only basic information
+    // Get the row from the result
+    const [user] = result.rows;
+    const md5email = md5(user.email.trim().toLowerCase());
+    const returnedUser = {
+      userid: user.userid,
+      nickname: user.nickname,
+      picture: `https://www.gravatar.com/avatar/${md5email}?s=256`,
+    };
     res.status(200);
-    return res.send({
-      id: user.user_id,
-      nickName: user.nickname,
-      picture: `https://www.gravatar.com/avatar/${md5(
-        user.email.trim().toLowerCase(),
-      )}?s=256`,
-    });
+    return res.send(returnedUser);
   },
   create: async (req, res) => {
     try {
-      // Get the user from the body
-      const user = req.body;
-      // Get rid of confirmPassword if it was passed in
-      delete user.confirmPassword;
-      // Check if there is a duplicate email address
-      const checkUser = await usersService.getByEmail(user.email);
-      if (checkUser) {
+      // Check that the user does not already exist
+      const check = await pool.query(
+        'SELECT * FROM users WHERE lower(email) = lower($1)',
+        [req.body.email],
+      );
+      // log this out
+      if (check.rowCount >= 1) {
         res.status(400);
-        return res.send();
+        return res.send('User already exists');
       }
+      // Hash the password
+      req.body.password = await bcrypt.hash(req.body.password, 10);
       // Save the information provided by the user to the the database
-      await usersService.create(user);
-      // Send the user information back to the user (without the password)
-      delete user.password;
-      return res.send(user);
+      const result = await pool.query(
+        'INSERT INTO users (email, nickname, password) VALUES ($1, $2, $3) RETURNING userid, email, nickname',
+        [req.body.email, req.body.nickname, req.body.password],
+      );
+      // Send back the created user
+      return res.send(result.rows[0]);
     } catch (error) {
       res.status(400);
       return res.send(error);
     }
   },
   update: async (req, res) => {
-    const updatedUser = req.body;
-    const user = await usersService.getById(req.params.userId);
-    // If no user then return an error
-    if (!user) {
+    try {
+      // Get the user from the database
+      const result = await pool.query('SELECT * FROM users WHERE userid = $1', [
+        req.params.userId,
+      ]);
+      // If no user then return an error
+      if (result.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Get the user from the query
+      const [user] = result.rows;
+      // Check that the user is the current user and check their password
+      const passwordCheck = await bcrypt.compare(
+        req.body.password,
+        user.password,
+      );
+      // If the password is incorrect or this isn't the current user
+      if (!passwordCheck || !req.user.userid === req.params.userId) {
+        res.status(400);
+        return res.send();
+      }
+      // If there is a new password then replace the old
+      if (req.body.newPassword) {
+        req.body.password = await bcrypt.hash(req.body.newPassword, 10);
+      } else {
+        // Remove the password if not being updated
+        delete req.body.password;
+      }
+      // Update the user, falling back on any previous values
+      const result2 = await pool.query(
+        'UPDATE users SET nickname = $1, password = $2 WHERE userid = $3 RETURNING userid, email, nickname',
+        [
+          req.body.nickname || user.nickname,
+          req.body.password || user.password,
+          req.params.userId,
+        ],
+      );
+      return res.send(result2.rows[0]);
+    } catch (error) {
       res.status(400);
-      return res.send();
+      return res.send(error);
     }
-    // Check that the user is the current user and check their password
-    const passwordCheck = await usersService.checkPassword(
-      user,
-      updatedUser.password,
-    );
-    // If the password is incorrect or this isn't the current user
-    if (!passwordCheck || !req.user._id.equals(user._id)) {
-      res.status(400);
-      return res.send();
-    }
-    let hashPassword = false;
-    // If there is a new password then replace the old
-    if (updatedUser.newPassword) {
-      updatedUser.password = updatedUser.newPassword;
-      delete updatedUser.newPassword;
-      hashPassword = true;
-    }
-    // Update the user
-    delete updatedUser._id;
-    await usersService.update(req.params.userId, updatedUser, hashPassword);
-    // Return the updated user
-    delete updatedUser.password;
-    return res.send(updatedUser);
   },
   login: async (req, res) => {
     try {
-      // Get the request from the body
-      const request = req.body;
-      // Get the user from the service
-      const user = await usersService.getByEmail(request.email);
+      // Get the user from the database
+      const result = await pool.query(
+        'SELECT * FROM users WHERE lower(email) = lower($1)',
+        [req.body.email],
+      );
       // If there is no user with that email
-      if (!user) {
+      if (result.rowCount === 0) {
         res.status(401);
         return res.send();
       }
+      // Get the user from the query
+      const [user] = result.rows;
       // If there is a user then check the password
-      const passwordCheck = await usersService.checkPassword(
-        user,
-        request.password,
+      const passwordCheck = await bcrypt.compare(
+        req.body.password,
+        user.password,
       );
       // If there is an issue with the password
       if (!passwordCheck) {
@@ -136,12 +162,7 @@ module.exports = {
       }
       // Otherwise send the user details in the token body
       const body = {
-        _id: user._id,
-        email: user.email,
-        nickname: user.nickname,
-        picture: `https://www.gravatar.com/avatar/${md5(
-          user.email.trim().toLowerCase(),
-        )}?s=256`,
+        userid: user.userid,
       };
       // Sign the JWT token and populate the payload with the user email and id
       const token = jwt.sign({ user: body }, config.jwt.secret, {
@@ -182,7 +203,7 @@ module.exports = {
     // This returns the profile for the current user extracted from the cookie
     if (req.user) {
       return res.send({
-        _id: req.user._id,
+        userid: req.user.userid,
         email: req.user.email,
         nickname: req.user.nickname,
         picture: `https://www.gravatar.com/avatar/${md5(
@@ -199,15 +220,19 @@ module.exports = {
       res.status(400);
       return res.send();
     }
-    const user = await usersService.getByEmail(email);
-    // If there is no user found then return an error
-    if (!user) {
+    // Get the user from the database
+    const result = await pool.query(
+      'SELECT * FROM users WHERE lower(email) = lower($1)',
+      [email],
+    );
+    // If nothing found
+    if (result.rowCount === 0) {
       res.status(400);
       return res.send();
     }
-    // Remove the Id for easier working
-    const userId = user._id;
-    delete user._id;
+    const [user] = result.rows;
+
+    // Generate the reset token
     user.resetToken = randomstring.generate(64);
 
     // Send an email to the user
@@ -218,13 +243,16 @@ module.exports = {
     });
     try {
       // Update the user in the database
-      await usersService.update(userId, user, false);
+      await pool.query(
+        'UPDATE users SET resettoken = $1 WHERE lower(email) = lower($2)',
+        [user.resetToken, user.email],
+      );
       // Send an email to the user with a reset link
       const message = `<h1>Forgotten Password</h1>
       <p>You are receiving this email because you told us that you have forgotten your password. 
       If you want to reset your password then please use the link below. 
       If you did not request this email then please ignore it.</p>
-      <p><a href="${config.application.baseUrl}/auth/reset/${user.resetToken}/${userId}">Reset Your Password</a></p>`;
+      <p><a href="${config.application.baseUrl}/auth/reset/${user.resetToken}/${user.userid}">Reset Your Password</a></p>`;
       const data = {
         from: 'RetroSpectacle <support@retrospectacle.io>',
         to: user.email,
@@ -247,18 +275,29 @@ module.exports = {
       res.status(400);
       return res.send();
     }
-    const user = await usersService.getById(userId);
-    // Check the validity of the reset token
-    if (user.resetToken !== resetToken) {
+    // Get the user from the database
+    const result = await pool.query('SELECT * FROM users WHERE userid = $1', [
+      userId,
+    ]);
+    // If no user then reject
+    if (result.rowCount === 0) {
       res.status(400);
       return res.send();
     }
-    delete user._id;
-    // If all okay then update the password and remove the token
-    user.password = password;
-    delete user.resetToken;
+    const [user] = result.rows;
+    // Check the validity of the reset token
+    if (user.resettoken !== resetToken) {
+      res.status(400);
+      return res.send();
+    }
+    // Hash the password before writing
+    const hashPassword = await bcrypt.hash(password, 10);
     try {
-      await usersService.update(userId, user, true);
+      // If all okay then update the password and remove the token
+      await pool.query(
+        'UPDATE users SET password = $1, resettoken = null WHERE userid = $2',
+        [hashPassword, userId],
+      );
       return res.send();
     } catch (error) {
       res.status(400);

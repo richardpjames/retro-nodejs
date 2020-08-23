@@ -2,9 +2,10 @@
 const jwt = require('jsonwebtoken');
 // Get configuration
 const config = require('../config/config');
-// For extracting the user
-const usersService = require('../services/usersService');
-// const permissionsService = require('../services/permissionsService');
+// Get the postgres connection
+const postgres = require('../db/postgres');
+// Fetch the postgres pool
+const pool = postgres.pool();
 
 module.exports = async (req, res, next) => {
   // For storing the token
@@ -25,10 +26,13 @@ module.exports = async (req, res, next) => {
     // Verify the token
     const verified = jwt.verify(token, config.jwt.secret);
     // Add the user to the request
-    req.user = await usersService.getById(verified.user._id);
+    const result = await pool.query('SELECT * FROM users WHERE userid = $1', [
+      verified.user.userid,
+    ]);
+    [req.user] = result.rows;
   } catch (error) {
     res.status(401);
     return res.send();
   }
-  next();
+  return next();
 };
