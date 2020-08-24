@@ -15,8 +15,8 @@ module.exports = {
     return db.collection('users').find().toArray();
   },
   // Retrieve a user using its ID - redis does not support async await so use callbacks
-  getById: async (userId) => {
-    return db.collection('users').findOne({ _id: ObjectId(userId) });
+  getById: async (userid) => {
+    return db.collection('users').findOne({ _id: ObjectId(userid) });
   },
   getByEmail: async (email) => {
     return db.collection('users').findOne({ email });
@@ -32,7 +32,7 @@ module.exports = {
     }
     throw errors.error.details;
   },
-  update: async (userId, user, hashPassword = false) => {
+  update: async (userid, user, hashPassword = false) => {
     // If there is a new password it needs to be hashed
     if (hashPassword) {
       user.password = await bcrypt.hash(user.password, 10);
@@ -41,7 +41,7 @@ module.exports = {
     const errors = userModel.validate(user);
     // If no validation errors then update the card
     if (!errors.error) {
-      await db.collection('users').replaceOne({ _id: ObjectId(userId) }, user);
+      await db.collection('users').replaceOne({ _id: ObjectId(userid) }, user);
     } else {
       throw errors.error.details;
     }

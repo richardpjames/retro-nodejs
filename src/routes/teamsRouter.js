@@ -12,11 +12,11 @@ const teamsRouter = express.Router({ mergeParams: true });
 teamsRouter.use(authCheck);
 // Map all of the routes to controller actions
 teamsRouter.get('/', teamsController.getAll);
-teamsRouter.get('/:teamId', teamsController.get);
+teamsRouter.get('/:teamid', teamsController.get);
 teamsRouter.post('/', teamsController.create);
-teamsRouter.put('/:teamId', teamsController.update);
-teamsRouter.delete('/:teamId', teamsController.remove);
-teamsRouter.put('/:teamId/memberships', teamsController.updateMembership);
-teamsRouter.delete('/:teamId/memberships', teamsController.removeMembership);
+teamsRouter.put('/:teamid', teamsController.update);
+teamsRouter.delete('/:teamid', teamsController.remove);
+teamsRouter.put('/:teamid/memberships', teamsController.updateMembership);
+teamsRouter.delete('/:teamid/memberships', teamsController.removeMembership);
 
 module.exports = teamsRouter;

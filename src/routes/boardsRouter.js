@@ -12,9 +12,9 @@ const boardsRouter = express.Router({ mergeParams: true });
 boardsRouter.use(authCheck);
 // Map all of the routes to controller actions
 boardsRouter.get('/', boardsController.getAll);
-boardsRouter.get('/:boardId', boardsController.get);
+boardsRouter.get('/:boardid', boardsController.get);
 boardsRouter.post('/', boardsController.create);
-boardsRouter.delete('/:boardId', boardsController.remove);
-boardsRouter.put('/:boardId', boardsController.update);
+boardsRouter.delete('/:boardid', boardsController.remove);
+boardsRouter.put('/:boardid', boardsController.update);
 
 module.exports = boardsRouter;

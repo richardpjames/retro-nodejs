@@ -9,11 +9,11 @@ module.exports = joi.object().keys({
   due: joi.date().required(),
   updates: joi.array().items({
     created: joi.date().required(),
-    userId: joi.string().required(),
+    userid: joi.string().required(),
     update: joi.string().required(),
   }),
   created: joi.date().required(),
   closed: joi.date(),
-  userId: joi.object().required(),
-  boardId: joi.object().required(),
+  userid: joi.object().required(),
+  boardid: joi.object().required(),
 });

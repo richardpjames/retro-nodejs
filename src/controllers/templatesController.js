@@ -15,7 +15,7 @@ module.exports = {
   get: async (req, res) => {
     const result = await pool.query(
       'SELECT * FROM templates WHERE templateid = $1',
-      [req.params.templateId],
+      [req.params.templateid],
     );
     // Return 404 if the template is not found
     if (result.rowCount === 0) {
@@ -52,7 +52,7 @@ module.exports = {
       // Get the template from the database
       const result = await pool.query(
         'SELECT * FROM templates WHERE templateid = $1',
-        [req.params.templateId],
+        [req.params.templateid],
       );
       // If no template then return an error
       if (result.rowCount === 0) {
@@ -68,7 +68,7 @@ module.exports = {
           req.body.description,
           req.body.instructions,
           req.body.maxvotes,
-          req.params.templateId,
+          req.params.templateid,
         ],
       );
       return res.send(result2.rows[0]);

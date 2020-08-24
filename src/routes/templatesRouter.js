@@ -14,11 +14,11 @@ templatesRouter.use(authCheck);
 // Map all of the routes to controller actions
 templatesRouter.get('/', templatesController.getAll);
 // Get a specific template
-templatesRouter.get('/:templateId', templatesController.get);
+templatesRouter.get('/:templateid', templatesController.get);
 // This particular route needs a permissions check (only admins can amend templates)
 templatesRouter.post('/', permissionCheck(), templatesController.create);
 templatesRouter.put(
-  '/:templateId',
+  '/:templateid',
   permissionCheck(),
   templatesController.update,
 );

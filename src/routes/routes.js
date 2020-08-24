@@ -22,14 +22,14 @@ const router = express.Router({ mergeParams: true });
 
 // Create our routes
 router.use('/api/boards', boardsRouter);
-router.use('/api/boards/:boardId/cards', cardsRouter);
-router.use('/api/boards/:boardId/cards/:cardId/votes', cardVotesRouter);
-router.use('/api/boards/:boardId/columns', columnsRouter);
-router.use('/api/boards/:boardId/columns/:columnid/cards', columnCardsRouter);
-router.use('/api/boards/:boardId/votes', votesRouter);
-router.use('/api/boards/:boardId/actions', boardActionsRouter);
+router.use('/api/boards/:boardid/cards', cardsRouter);
+router.use('/api/boards/:boardid/cards/:cardid/votes', cardVotesRouter);
+router.use('/api/boards/:boardid/columns', columnsRouter);
+router.use('/api/boards/:boardid/columns/:columnid/cards', columnCardsRouter);
+router.use('/api/boards/:boardid/votes', votesRouter);
+router.use('/api/boards/:boardid/actions', boardActionsRouter);
 router.use('/api/templates', templatesRouter);
-router.use('/api/templates/:templateId/columns', templateColumnsRouter);
+router.use('/api/templates/:templateid/columns', templateColumnsRouter);
 router.use('/api/users', usersRouter);
 router.use('/api/teams', teamsRouter);
 router.use('/api/actions', actionsRouter);

@@ -14,7 +14,7 @@ module.exports = {
   getAll: async (req, res) => {
     const response = await pool.query(
       'SELECT c.* FROM columns c INNER JOIN boards b ON c.boardid = b.boardid WHERE b.uuid = $1',
-      [req.params.boardId],
+      [req.params.boardid],
     );
     const columns = response.rows;
     res.status(200);
@@ -47,7 +47,7 @@ module.exports = {
       // Check the user owns this board
       const checkResponse = await pool.query(
         'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
-        [req.params.boardId, req.user.userid],
+        [req.params.boardid, req.user.userid],
       );
       // If there is no board (or it was locked)
       if (checkResponse.rowCount === 0) {
@@ -57,11 +57,11 @@ module.exports = {
       // Insert the column
       const response = await pool.query(
         'INSERT INTO columns (title, rank, boardid, created, updated) values ($1, $2, $3, now(), now()) RETURNING *',
-        [req.body.title, req.body.rank, req.params.boardId],
+        [req.body.title, req.body.rank, req.params.boardid],
       );
       const [column] = response.rows;
       res.status(200);
-      io.to(req.params.boardId).emit('column created', column);
+      io.to(req.params.boardid).emit('column created', column);
       return res.send(column);
     } catch (error) {
       res.status(400);
@@ -76,7 +76,7 @@ module.exports = {
           req.body.title,
           req.body.rank,
           req.params.columnid,
-          req.params.boardId,
+          req.params.boardid,
           req.user.userid,
         ],
       );
@@ -89,7 +89,7 @@ module.exports = {
       const [updatedColumn] = response.rows;
       // After all affected cards are moved we can return the updated card
       res.status(200);
-      io.to(req.params.boardId).emit('column updated', updatedColumn);
+      io.to(req.params.boardid).emit('column updated', updatedColumn);
       return res.send(updatedColumn);
       // Return any errors back to the user
     } catch (error) {
@@ -101,7 +101,7 @@ module.exports = {
     // Check the user owns this board
     const checkResponse = pool.query(
       'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
-      [req.params.boardId, req.user.userid],
+      [req.params.boardid, req.user.userid],
     );
     // If there is no board (or it was locked)
     if (checkResponse.rowCount === 0) {
@@ -111,9 +111,9 @@ module.exports = {
     // Remove the column (other tables cascade)
     await pool.query(
       'DELETE FROM columns WHERE columnid = $1 and boardid = $2',
-      [req.params.columnid, req.params.boardId],
+      [req.params.columnid, req.params.boardid],
     );
-    io.to(req.params.boardId).emit('column deleted', req.params.columnid);
+    io.to(req.params.boardid).emit('column deleted', req.params.columnid);
     res.status(204);
     return res.send();
   },

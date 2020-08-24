@@ -13,8 +13,8 @@ module.exports = {
     return db.collection('votes').find().toArray();
   },
   // Retrieve a vote using its ID
-  getById: async (voteId) => {
-    return db.collection('votes').findOne({ _id: ObjectId(voteId) });
+  getById: async (voteid) => {
+    return db.collection('votes').findOne({ _id: ObjectId(voteid) });
   },
   query: async (query) => {
     return db.collection('votes').find(query).toArray();
@@ -31,19 +31,19 @@ module.exports = {
     }
   },
   // Replace a vote with a new one
-  update: async (voteId, vote) => {
+  update: async (voteid, vote) => {
     // Validate the updated vote against the model
     const errors = voteModel.validate(vote);
     // If no validation errors then update the vote
     if (!errors.error) {
-      await db.collection('votes').replaceOne({ _id: ObjectId(voteId) }, vote);
+      await db.collection('votes').replaceOne({ _id: ObjectId(voteid) }, vote);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a vote from the database
-  remove: async (voteId) => {
-    return db.collection('votes').deleteOne({ _id: ObjectId(voteId) });
+  remove: async (voteid) => {
+    return db.collection('votes').deleteOne({ _id: ObjectId(voteid) });
   },
   // Remove all of the votes based on a query
   removeQuery: async (query) => {

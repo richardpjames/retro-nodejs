@@ -12,6 +12,6 @@ const cardVotesRouter = express.Router({ mergeParams: true });
 cardVotesRouter.use(authCheck);
 // Routes
 cardVotesRouter.post('/', votesController.create);
-cardVotesRouter.delete('/:voteId', votesController.remove);
+cardVotesRouter.delete('/:voteid', votesController.remove);
 
 module.exports = cardVotesRouter;

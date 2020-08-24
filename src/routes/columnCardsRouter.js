@@ -12,7 +12,7 @@ const columnCardsRouter = express.Router({ mergeParams: true });
 columnCardsRouter.use(authCheck);
 // Routes
 columnCardsRouter.post('/', cardsController.create);
-columnCardsRouter.put('/:cardId', cardsController.update);
-columnCardsRouter.delete('/:cardId', cardsController.remove);
+columnCardsRouter.put('/:cardid', cardsController.update);
+columnCardsRouter.delete('/:cardid', cardsController.remove);
 
 module.exports = columnCardsRouter;

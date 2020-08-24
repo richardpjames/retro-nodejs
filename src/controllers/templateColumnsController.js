@@ -9,7 +9,7 @@ module.exports = {
   getAll: async (req, res) => {
     const response = await pool.query(
       'SELECT * FROM templatecolumns WHERE tempalteid = $1',
-      [req.params.templateId],
+      [req.params.templateid],
     );
     const templateComlumns = response.rows;
     res.status(200);
@@ -20,7 +20,7 @@ module.exports = {
     try {
       const response = await pool.query(
         'INSERT INTO templatecolumns (title, rank, templateid, created, updated) VALUES ($1, $2, $3, now(), now()) RETURNING *',
-        [req.body.title, req.body.rank, req.params.templateId],
+        [req.body.title, req.body.rank, req.params.templateid],
       );
       res.status(200);
       return res.send(response.rows[0]);

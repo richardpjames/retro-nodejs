@@ -21,7 +21,7 @@ module.exports = {
       // Get the team
       const response = await pool.query(
         'SELECT * FROM teams WHERE teamid = $1',
-        [req.params.teamId],
+        [req.params.teamid],
       );
       // If we can't find the board then send a 404
       if (response.rowCount === 0) {
@@ -56,7 +56,7 @@ module.exports = {
     try {
       // Get the team from the database
       const result = await pool.query('SELECT * FROM teams WHERE teamid = $1', [
-        req.params.teamId,
+        req.params.teamid,
       ]);
       // If no team then return an error
       if (result.rowCount === 0) {
@@ -68,7 +68,7 @@ module.exports = {
       // Update the team, falling back on any previous values
       const result2 = await pool.query(
         'UPDATE teams SET name = $1, updated = now() WHERE teamid = $3 RETURNING *',
-        [req.body.name || team.name, req.params.teamId],
+        [req.body.name || team.name, req.params.teamid],
       );
       return res.send(result2.rows[0]);
     } catch (error) {
@@ -80,7 +80,7 @@ module.exports = {
     // Remove the team (checking userid)
     const response = await pool.query(
       'DELETE FROM teams WHERE teamid = $1 AND userid = $2',
-      [req.params.teamId, req.user.userid],
+      [req.params.teamid, req.user.userid],
     );
     // Check that any teams were actually deleted
     if (response.rowCount === 0) {
@@ -94,7 +94,7 @@ module.exports = {
   updateMembership: async (req, res) => {
     try {
       // Find the team requested
-      const team = await teamsService.getById(req.params.teamId);
+      const team = await teamsService.getById(req.params.teamid);
       // Find the membership to update
       const membership = team.members.find(
         (member) => member.email === req.user.email,
@@ -103,7 +103,7 @@ module.exports = {
       membership.status = req.body.status;
       // Remove the id to allow saving
       delete team._id;
-      teamsService.update(req.params.teamId, team);
+      teamsService.update(req.params.teamid, team);
       res.status(200);
       return res.send(team);
     } catch (error) {
@@ -113,7 +113,7 @@ module.exports = {
   },
   removeMembership: async (req, res) => {
     // Find the team requested
-    const team = await teamsService.getById(req.params.teamId);
+    const team = await teamsService.getById(req.params.teamid);
     // If the team has any members, then remove this one
     if (team.members) {
       team.members = team.members.filter(
@@ -124,7 +124,7 @@ module.exports = {
       // Remove the id from the team to allow update
       delete team._id;
       // Update team and report success
-      teamsService.update(req.params.teamId, team);
+      teamsService.update(req.params.teamid, team);
       res.status(200);
       return res.send(team);
     } catch (error) {

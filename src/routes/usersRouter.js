@@ -11,7 +11,7 @@ const usersRouter = express.Router({ mergeParams: true });
 usersRouter.use(authCheck);
 // Map all of the routes to controller actions
 usersRouter.get('/', usersController.getAll);
-usersRouter.get('/:userId', usersController.getById);
-usersRouter.put('/:userId', usersController.update);
+usersRouter.get('/:userid', usersController.getById);
+usersRouter.put('/:userid', usersController.update);
 
 module.exports = usersRouter;

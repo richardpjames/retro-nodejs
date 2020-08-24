@@ -16,7 +16,7 @@ module.exports = {
       // Get the cards based on the board and column id
       const response = await pool.query(
         'SELECT c.*, u.userid, u.nickname FROM cards c LEFT JOIN columns c2 ON c.columnid = c2.columnid LEFT JOIN boards b ON c2.boardid = b.boardid LEFT JOIN users u ON c.userid = u.userid WHERE b.uuid = $1',
-        [req.params.boardId],
+        [req.params.boardid],
       );
       // Get the cards from the response
       const cards = response.rows;
@@ -32,7 +32,7 @@ module.exports = {
     try {
       const check = await pool.query(
         'SELECT * FROM boards WHERE boardid = $1 AND locked = false',
-        [req.params.boardId],
+        [req.params.boardid],
       );
       // Stop the creation of cards for locked boards
       if (check.rowCount === 0) {
@@ -56,7 +56,7 @@ module.exports = {
       );
       const [card] = response2.rows;
       res.status(200);
-      io.to(req.params.boardId).emit('card created', card);
+      io.to(req.params.boardid).emit('card created', card);
       return res.send(card);
     } catch (error) {
       res.status(400);
@@ -68,7 +68,7 @@ module.exports = {
       // Get the original card to ensure it's not on a locked board
       const check = await pool.query(
         'SELECT * FROM cards c INNER JOIN columns c2 ON c.columnid = c2.columnid INNER JOIN boards b ON c2.boardid = b.boardid WHERE cardid = $1 AND b.locked = false',
-        [req.params.cardId],
+        [req.params.cardid],
       );
       // If no rows returned
       if (check.rowCount === 0) {
@@ -92,13 +92,13 @@ module.exports = {
           req.body.rank || originalCard.rank,
           req.body.colour || originalCard.colour,
           req.body.columnid || originalCard.columnid,
-          req.params.cardId,
+          req.params.cardid,
         ],
       );
       const [updatedCard] = response.rows;
       // After all affected cards are moved we can return the updated card
       res.status(200);
-      io.to(req.params.boardId).emit('card updated', updatedCard);
+      io.to(req.params.boardid).emit('card updated', updatedCard);
       return res.send(updatedCard);
       // Return any errors back to the user
     } catch (error) {
@@ -110,7 +110,7 @@ module.exports = {
     try {
       const response = await pool.query(
         'DELETE FROM cards c WHERE c.cardid = $1 AND c.cardid IN (SELECT cardid FROM cards c INNER JOIN columns c2 ON c.columnid = c2.columnid INNER JOIN boards b ON c2.boardid = b.boardid WHERE c.cardid = $1 AND b.locked = false)',
-        [req.params.cardId],
+        [req.params.cardid],
       );
       // If nothing was removed
       if (response.rowCount === 0) {
@@ -118,7 +118,7 @@ module.exports = {
         return res.send();
       }
       // Send responses
-      io.to(req.params.boardId).emit('card deleted', req.params.cardId);
+      io.to(req.params.boardid).emit('card deleted', req.params.cardid);
       res.status(204);
       return res.send();
     } catch (error) {

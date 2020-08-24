@@ -13,7 +13,7 @@ boardActionsRouter.use(authCheck);
 // Routes
 boardActionsRouter.get('/', actionsController.getAll);
 boardActionsRouter.post('/', actionsController.create);
-boardActionsRouter.delete('/:actionId', actionsController.remove);
-boardActionsRouter.put('/:actionId', actionsController.update);
+boardActionsRouter.delete('/:actionid', actionsController.remove);
+boardActionsRouter.put('/:actionid', actionsController.update);
 
 module.exports = boardActionsRouter;

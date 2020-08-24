@@ -22,7 +22,7 @@ module.exports = {
     // Get all actions for the board
     const response = await pool.query(
       'SELECT a.* FROM actions a INNER JOIN boards b ON a.boardid = b.boardid WHERE b.uuid = $1',
-      [req.params.boardId],
+      [req.params.boardid],
     );
     const actions = response.rows;
     res.status(200);
@@ -32,23 +32,23 @@ module.exports = {
     const teams = await teamsService.query({
       $or: [
         { members: { $elemMatch: { email: req.user.email } } },
-        { userId: req.user._id },
+        { userid: req.user._id },
       ],
     });
-    const teamIds = teams.map((team) => team._id);
+    const teamids = teams.map((team) => team._id);
     const boards = await boardsService.query({
-      $or: [{ userId: req.user._id }, { teamId: { $in: teamIds } }],
+      $or: [{ userid: req.user._id }, { teamid: { $in: teamids } }],
     });
-    const boardIds = boards.map((board) => board._id);
-    const actions = await actionsService.query({ boardId: { $in: boardIds } });
+    const boardids = boards.map((board) => board._id);
+    const actions = await actionsService.query({ boardid: { $in: boardids } });
 
     await Promise.all(
       actions.map(async (action) => {
-        const _board = boards.find((b) => b._id.equals(action.boardId));
+        const _board = boards.find((b) => b._id.equals(action.boardid));
         if (_board) {
           action.boardName = _board.name;
-          if (_board.teamId) {
-            const _team = teams.find((t) => t._id.equals(_board.teamId));
+          if (_board.teamid) {
+            const _team = teams.find((t) => t._id.equals(_board.teamid));
             if (_team) {
               action.teamName = _team.name;
             }
@@ -57,7 +57,7 @@ module.exports = {
         // Updates all of the updated within an action with the user information
         await Promise.all(
           action.updates.map((update) => {
-            return usersService.getById(update.userId).then((user) => {
+            return usersService.getById(update.userid).then((user) => {
               update.nickname = user.nickname;
             });
           }),
@@ -69,27 +69,34 @@ module.exports = {
     return res.send(actions);
   },
   create: async (req, res) => {
-    const board = await boardsService.getById(req.params.boardId);
-    // Stop the creation of actions for locked boards
-    if (board.locked) {
-      res.status(400);
-      return res.send();
-    }
     try {
-      // Get the column from the request
-      const action = req.body;
-      // If not specified then default the status to to do
-      if (action.status === undefined) {
-        action.status = 'todo';
+      // Stop the creation of actions for locked boards
+      const check = await pool.query(
+        'SELECT * FROM boards WHERE boardid = $1 AND locked = false',
+        [req.params.boardid],
+      );
+      // Stop the creation of cards for locked boards
+      if (check.rowCount === 0) {
+        res.status(400);
+        return res.send();
       }
-      // Add additional data from url etc.
-      action.boardId = ObjectId(req.params.boardId);
-      action.created = Date.now();
-      action.userId = req.user._id;
+      // Try and save the card (this will also validate the data)
+      const response = await pool.query(
+        'INSERT INTO actions (text, owner, status, due, closed, userid, boardid, created, updated) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now()) RETURNING *',
+        [
+          req.body.text,
+          req.body.owner,
+          req.body.status,
+          req.body.due,
+          req.body.closed,
+          req.user.userid,
+          req.params.boardid,
+        ],
+      );
+      const [action] = response.rows;
       // Check that the user owns this board
-      await actionsService.create(action);
       res.status(200);
-      io.to(req.params.boardId).emit('action created', action);
+      io.to(req.params.boardid).emit('action created', action);
       return res.send(action);
     } catch (error) {
       res.status(400);
@@ -97,21 +104,33 @@ module.exports = {
     }
   },
   update: async (req, res) => {
-    // Find the new action sent in the request and the original as we need to compare
-    const updatedAction = req.body;
-    delete updatedAction._id;
-    updatedAction.userId = ObjectId(req.body.userId);
-    await Promise.all(
-      updatedAction.updates.map((update) => delete update.nickname),
-    );
-    // If allowed uperation then convert strings to object ids
-    updatedAction.boardId = ObjectId(updatedAction.boardId);
     try {
-      // Update the card
-      await actionsService.update(req.params.actionId, updatedAction);
-      // After all affected cards are moved we can return the updated card
+      // Get the original action
+      const check = await pool.query(
+        'SELECT * FROM actions WHERE actionid = $1',
+        [req.params.actionid],
+      );
+      // If it doesn't exist then return
+      if (check.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      const [originalAction] = check.rows;
+      // Update the action
+      const response = await pool.query(
+        'UPDATE actions SET text = $1, owner = $2, status = $3, due = $4, closed = $5, updated = now() WHERE actionid = $6 RETURNING *',
+        [
+          req.body.text || originalAction.text,
+          req.body.owner || originalAction.owner,
+          req.body.status || originalAction.status,
+          req.body.due || originalAction.due,
+          req.body.closed || originalAction.closed,
+        ],
+      );
+      const [updatedAction] = response.rows;
+      // Send responses
       res.status(200);
-      io.to(req.params.boardId).emit('action updated', updatedAction);
+      io.to(req.params.boardid).emit('action updated', updatedAction);
       return res.send(updatedAction);
       // Return any errors back to the user
     } catch (error) {
@@ -120,25 +139,18 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
-    const board = await boardsService.getById(req.params.boardId);
-    // Stop the removal of actions for locked boards
-    if (board.locked) {
+    // Remove the action
+    const response = await pool.query(
+      'DELETE FROM actions a WHERE a.actionid = $1 AND a.actionid IN (SELECT actionid FROM actions a INNER JOIN boards b ON a.boardid = b.boardid WHERE a.actionid = $1 AND b.locked = false)',
+      [req.params.actionid],
+    );
+    // If nothing was removed
+    if (response.rowCount === 0) {
       res.status(400);
       return res.send();
     }
-    // Check that there is a column for this board with the id
-    const action = await actionsService.query({
-      _id: ObjectId(req.params.actionId),
-      boardId: ObjectId(req.params.boardId),
-    });
-    // Prevent users from deleting others columns
-    if (!action) {
-      res.status(404);
-      return res.send();
-    }
-    // Remove the action
-    await actionsService.remove(req.params.actionId);
-    io.to(req.params.boardId).emit('action deleted', req.params.actionId);
+    // Send responses
+    io.to(req.params.boardid).emit('action deleted', req.params.actionid);
     res.status(204);
     return res.send();
   },

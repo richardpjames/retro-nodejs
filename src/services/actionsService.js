@@ -13,8 +13,8 @@ module.exports = {
     return db.collection('actions').find().toArray();
   },
   // Retrieve a action using its ID
-  getById: async (actionId) => {
-    return db.collection('actions').findOne({ _id: ObjectId(actionId) });
+  getById: async (actionid) => {
+    return db.collection('actions').findOne({ _id: ObjectId(actionid) });
   },
   query: async (query) => {
     return db.collection('actions').find(query).toArray();
@@ -31,20 +31,20 @@ module.exports = {
     }
   },
   // Replace a action with a new one
-  update: async (actionId, action) => {
+  update: async (actionid, action) => {
     // Validate the updated action against the model
     const errors = actionModel.validate(action);
     // If no validation errors then update the action
     if (!errors.error) {
       await db
         .collection('actions')
-        .replaceOne({ _id: ObjectId(actionId) }, action);
+        .replaceOne({ _id: ObjectId(actionid) }, action);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a action from the database
-  remove: async (actionId) => {
-    return db.collection('actions').deleteOne({ _id: ObjectId(actionId) });
+  remove: async (actionid) => {
+    return db.collection('actions').deleteOne({ _id: ObjectId(actionid) });
   },
 };

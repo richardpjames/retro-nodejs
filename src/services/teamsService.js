@@ -13,8 +13,8 @@ module.exports = {
     return db.collection('teams').find().toArray();
   },
   // Retrieve a team using its ID
-  getById: async (teamId) => {
-    return db.collection('teams').findOne({ _id: ObjectId(teamId) });
+  getById: async (teamid) => {
+    return db.collection('teams').findOne({ _id: ObjectId(teamid) });
   },
   query: async (query) => {
     return db.collection('teams').find(query).toArray();
@@ -30,18 +30,18 @@ module.exports = {
     throw errors.error.details;
   },
   // Replace a team with a new one
-  update: async (teamId, team) => {
+  update: async (teamid, team) => {
     // Validate the updated team against the model
     const errors = teamModel.validate(team);
     // If no validation errors then update the team
     if (!errors.error) {
-      await db.collection('teams').replaceOne({ _id: ObjectId(teamId) }, team);
+      await db.collection('teams').replaceOne({ _id: ObjectId(teamid) }, team);
     } else {
       throw errors.error.details;
     }
   },
   // Remove a team from the database
-  remove: async (teamId) => {
-    return db.collection('teams').deleteOne({ _id: ObjectId(teamId) });
+  remove: async (teamid) => {
+    return db.collection('teams').deleteOne({ _id: ObjectId(teamid) });
   },
 };

@@ -48,7 +48,7 @@ module.exports = {
   getById: async (req, res) => {
     const result = await pool.query(
       'SELECT userid, nickname, email FROM users WHERE userid = $1',
-      [req.params.userId],
+      [req.params.userid],
     );
     if (result.rowCount === 0) {
       res.status(404);
@@ -85,7 +85,7 @@ module.exports = {
     try {
       // Get the user from the database
       const result = await pool.query('SELECT * FROM users WHERE userid = $1', [
-        req.params.userId,
+        req.params.userid,
       ]);
       // If no user then return an error
       if (result.rowCount === 0) {
@@ -100,7 +100,7 @@ module.exports = {
         user.password,
       );
       // If the password is incorrect or this isn't the current user
-      if (!passwordCheck || !req.user.userid === req.params.userId) {
+      if (!passwordCheck || !req.user.userid === req.params.userid) {
         res.status(400);
         return res.send();
       }
@@ -117,7 +117,7 @@ module.exports = {
         [
           req.body.nickname || user.nickname,
           req.body.password || user.password,
-          req.params.userId,
+          req.params.userid,
         ],
       );
       return res.send(result2.rows[0]);
@@ -259,15 +259,15 @@ module.exports = {
     }
   },
   reset: async (req, res) => {
-    const { userId, resetToken, password } = req.body;
+    const { userid, resetToken, password } = req.body;
     // If any of the items are missing then return 400
-    if (!userId || !resetToken || !password) {
+    if (!userid || !resetToken || !password) {
       res.status(400);
       return res.send();
     }
     // Get the user from the database
     const result = await pool.query('SELECT * FROM users WHERE userid = $1', [
-      userId,
+      userid,
     ]);
     // If no user then reject
     if (result.rowCount === 0) {
@@ -286,7 +286,7 @@ module.exports = {
       // If all okay then update the password and remove the token
       await pool.query(
         'UPDATE users SET password = $1, resettoken = null, updated = now() WHERE userid = $2',
-        [hashPassword, userId],
+        [hashPassword, userid],
       );
       return res.send();
     } catch (error) {

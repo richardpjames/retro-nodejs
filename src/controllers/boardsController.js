@@ -28,7 +28,7 @@ module.exports = {
       // Get from the database
       const response = await pool.query(
         'SELECT * FROM boards WHERE uuid = $1',
-        [req.params.boardId],
+        [req.params.boardid],
       );
       // If we can't find the board then send a 404
       if (response.rowCount === 0) {
@@ -46,8 +46,8 @@ module.exports = {
         );
         // Get the teams from the query result
         const teams = response2.rows;
-        const teamIds = teams.map((team) => team.teamid);
-        if (!teamIds.includes(board.teamid)) {
+        const teamids = teams.map((team) => team.teamid);
+        if (!teamids.includes(board.teamid)) {
           res.status(401);
           return res.send();
         }
@@ -64,11 +64,11 @@ module.exports = {
   create: async (req, res) => {
     const templateResponse = await pool.query(
       'SELECT * FROM templates WHERE templateid = $1',
-      [req.body.templateId],
+      [req.body.templateid],
     );
     const templateColumnResponse = await pool.query(
       'SELECT * FROM templatecolumns WHERE templateid = $1',
-      [req.body.templateId],
+      [req.body.templateid],
     );
     // Check that there was a template
     if (templateResponse.rowCount === 0) {
@@ -94,17 +94,17 @@ module.exports = {
           req.body.showinstructions || false,
           req.body.locked || false,
           req.user.userid,
-          req.body.teamId,
+          req.body.teamid,
         ],
       );
       // Get the Id of the inserted board
-      const boardId = insertBoardReponse.rows[0].boardid;
+      const { boardid } = insertBoardReponse.rows[0];
       // Now that the board is created we create the columns
       await Promise.all(
         templateColumnResponse.rows.map(async (column) => {
           await pool.query(
             'INSERT INTO columns (title, rank, boardid, created, updated) VALUES ($1, $2, $3, now(), now())',
-            [column.title, column.rank, boardId],
+            [column.title, column.rank, boardid],
           );
         }),
       );
@@ -120,7 +120,7 @@ module.exports = {
     // Get the board from the database
     const response = await pool.query(
       'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
-      [req.params.boardId, req.user.userid],
+      [req.params.boardid, req.user.userid],
     );
     // Prevent users from updating others boards or updating locked boards
     if (response.rowCount === 0) {
@@ -130,7 +130,7 @@ module.exports = {
     try {
       // Update the board
       const response2 = await pool.query(
-        'UPDATE boards SET name = $1, description = $2, instructions = $3, maxvotes = $4, private = $5, showactions = $6, allowvotes = $7, showinstructions = $8, locked = $9, updated = now() WHERE boardid = $10 RETURNING *',
+        'UPDATE boards SET name = $1, description = $2, instructions = $3, maxvotes = $4, private = $5, showactions = $6, allowvotes = $7, showinstructions = $8, locked = $9, teamid = $10, updated = now() WHERE boardid = $11 RETURNING *',
         [
           req.body.name,
           req.body.description,
@@ -141,13 +141,14 @@ module.exports = {
           req.body.allowvotes,
           req.body.showinstructions,
           req.body.locked,
-          req.params.boardId,
+          req.body.teamid,
+          req.params.boardid,
         ],
       );
       const [updatedBoard] = response2.rows;
       // After all affected cards are moved we can return the updated card
       res.status(200);
-      io.to(req.params.boardId).emit('board updated', updatedBoard);
+      io.to(req.params.boardid).emit('board updated', updatedBoard);
       return res.send(updatedBoard);
       // Return any errors back to the user
     } catch (error) {
@@ -159,7 +160,7 @@ module.exports = {
     // Delete the board (cascading deletes remove the rest)
     const response = await pool.query(
       'DELETE FROM boards WHERE boardid = $1 and userid = $2',
-      [req.params.boardId, req.user.userid],
+      [req.params.boardid, req.user.userid],
     );
     // If nothing was deleted
     if (response.rowCount === 0) {

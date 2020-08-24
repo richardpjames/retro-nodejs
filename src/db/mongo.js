@@ -23,24 +23,24 @@ const mongo = {
         await db.createCollection('boards', {
           collation: { locale: 'en_US', strength: 2 },
         });
-        await db.collection('boards').createIndex({ userId: 1 });
+        await db.collection('boards').createIndex({ userid: 1 });
         await db.createCollection('columns', {
           collation: { locale: 'en_US', strength: 2 },
         });
-        await db.collection('columns').createIndex({ boardId: 1 });
+        await db.collection('columns').createIndex({ boardid: 1 });
         await db.createCollection('cards', {
           collation: { locale: 'en_US', strength: 2 },
         });
-        await db.collection('cards').createIndex({ boardId: 1, columnId: 1 });
+        await db.collection('cards').createIndex({ boardid: 1, columnid: 1 });
         await db.createCollection('actions', {
           collation: { locale: 'en_US', strength: 2 },
         });
-        await db.collection('actions').createIndex({ boardId: 1 });
+        await db.collection('actions').createIndex({ boardid: 1 });
         await db.createCollection('votes', {
           collation: { locale: 'en_US', strength: 2 },
         });
-        await db.collection('votes').createIndex({ boardId: 1 });
-        await db.collection('votes').createIndex({ cardId: 1, userId: 1 });
+        await db.collection('votes').createIndex({ boardid: 1 });
+        await db.collection('votes').createIndex({ cardid: 1, userid: 1 });
         await db.createCollection('teams', {
           collation: { locale: 'en_US', strength: 2 },
         });
