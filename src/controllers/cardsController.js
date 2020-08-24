@@ -139,6 +139,19 @@ module.exports = {
       return res.send(error);
     }
   },
+  updateCombined: async (req, res) => {
+    try {
+      // Insert the combined card
+      const response = await pool.query(
+        'UPDATE combinedcards SET cardid = $1, updated = now() WHERE combinedid = $2 RETURNING *',
+        [req.body.cardid, req.params.combinedid],
+      );
+      return res.send(response.rows[0]);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
   removeCombined: async (req, res) => {
     try {
       // Insert the combined card
