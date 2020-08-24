@@ -14,35 +14,32 @@ const debug = require('debug')('app');
 // Load modules from inside the application
 const config = require('./config/config');
 // Database utlities
-const mongo = require('./db/mongo');
 const postgres = require('./db/postgres');
 // Socket.io for realtime updates
 const socketio = require('./sockets/socketio');
 
-// Connect to mongo
-mongo.connectToServer(() => {
-  // Connect to postgres
-  postgres.connectToServer();
-  // Then create the web server
-  const app = express();
-  // Set up CORS settings
-  app.use(cors({ origin: config.cors.origin, credentials: true }));
-  // Configuration and middleware
-  app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
-  // Set up the cookie parser
-  app.use(cookieParser());
+// Connect to postgres
+postgres.connectToServer();
+// Then create the web server
+const app = express();
+// Set up CORS settings
+app.use(cors({ origin: config.cors.origin, credentials: true }));
+// Configuration and middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+// Set up the cookie parser
+app.use(cookieParser());
 
-  // Add express and socket.io to the http server
-  const server = http.createServer(app);
-  socketio.connectServer(server);
+// Add express and socket.io to the http server
+const server = http.createServer(app);
+socketio.connectServer(server);
 
-  // Routers are requried after we have connected to the db so allow require here
-  const router = require('./routes/routes');
-  app.use(router);
+// Routers are requried after we have connected to the db so allow require here
+const router = require('./routes/routes');
+// Set the application to use the router
+app.use(router);
 
-  // Start the application as per the configuration settings
-  server.listen(config.application.port, () =>
-    debug(`Server listening at http://localhost:${config.application.port}`),
-  );
-});
+// Start the application as per the configuration settings
+server.listen(config.application.port, () =>
+  debug(`Server listening at http://localhost:${config.application.port}`),
+);

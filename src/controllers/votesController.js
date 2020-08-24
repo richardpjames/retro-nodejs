@@ -1,14 +1,10 @@
 // We just require the object id method from mongo and a connection to sockets
-const { ObjectId } = require('mongodb');
 const sockets = require('../sockets/socketio');
-// Required services for writing to the database
-const votesService = require('../services/votesService');
-const boardsService = require('../services/boardsService');
 // For connection to the database
 const postgres = require('../db/postgres');
+
 // Get the connection pool
 const pool = postgres.pool();
-
 // Get the socket server
 const io = sockets.io();
 
@@ -30,45 +26,25 @@ module.exports = {
   },
   // For the creation of new votes
   create: async (req, res) => {
-    // Check if the user has already voted on this card
-    const existingVote = await votesService.query({
-      cardid: ObjectId(req.params.cardid),
-      userid: req.user._id,
-    });
-    // reject if they have
-    if (existingVote.length > 0) {
-      res.status(400);
-      return res.send();
-    }
-
-    // Check if there are too many votes for this board
-    const board = await boardsService.getById(req.params.boardid);
-    // Stop the creation of votes for locked boards
-    if (board.locked) {
-      res.status(400);
-      return res.send();
-    }
-    const totalVotes = await votesService.query({
-      boardid: ObjectId(req.params.boardid),
-      userid: req.user._id,
-    });
-    // Check the votes for this user against the max allowed for the board
-    if (totalVotes.length >= board.maxvotes) {
-      res.status(400);
-      return res.send();
-    }
-
-    const vote = req.body;
-    // Set the created time
-    vote.created = Date.now();
-    vote.userid = req.user._id;
-    vote.boardid = ObjectId(req.params.boardid);
-    vote.cardid = ObjectId(req.params.cardid);
-    // Try and save the template (this will also validate the data)
+    // Try and save the vote (this will also validate the data)
     try {
-      await votesService.create(vote);
+      const check = await pool.query(
+        'SELECT * FROM boards WHERE boardid = $1 AND locked = false',
+        [req.params.boardid],
+      );
+      // Stop the creation of votes for locked boards
+      if (check.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Insert the vote (constraints on the table prevents defaults)
+      const response = await pool.query(
+        'INSERT INTO votes (userid, cardid, created, updated) VALUES ($1, $2, now(), now()) RETURNING *',
+        [req.body.userid, req.body.cardid],
+      );
+      const [vote] = response.rows;
+      // Send the responses
       res.status(200);
-      vote.nickname = req.user.nickname;
       io.to(req.params.boardid).emit('vote created', vote);
       return res.send(vote);
     } catch (error) {
@@ -77,25 +53,32 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
-    const board = await boardsService.getById(req.params.boardid);
-    // Stop the removal of votes for locked boards
-    if (board.locked) {
+    try {
+      const check = await pool.query(
+        'SELECT * FROM boards WHERE boardid = $1 AND locked = false',
+        [req.params.boardid],
+      );
+      // Stop the creation of votes for locked boards
+      if (check.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      const response = await pool.query(
+        'DELETE FROM votes WHERE voteid = $1 and userid = $2',
+        [req.params.voteid, req.user.userid],
+      );
+      // If nothing deleted
+      if (response.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Otherwise - send the responses
+      io.to(req.params.boardid).emit('vote deleted', req.params.voteid);
+      res.status(204);
+      return res.send();
+    } catch (error) {
       res.status(400);
       return res.send();
     }
-    const vote = await votesService.query({
-      _id: ObjectId(req.params.voteid),
-      userid: req.user._id,
-    });
-    if (vote.length === 0) {
-      res.status(404);
-      return res.send();
-    }
-    // Remove the requested card
-    await votesService.remove(req.params.voteid);
-    // Shift all later cards down the list
-    io.to(req.params.boardid).emit('vote deleted', req.params.voteid);
-    res.status(204);
-    return res.send();
   },
 };

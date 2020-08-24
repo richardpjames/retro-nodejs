@@ -2,7 +2,6 @@
 const postgres = require('../db/postgres');
 // Get the database pool
 const pool = postgres.pool();
-const teamsService = require('../services/teamsService');
 
 // The controller for boards
 module.exports = {
@@ -93,40 +92,35 @@ module.exports = {
   },
   updateMembership: async (req, res) => {
     try {
-      // Find the team requested
-      const team = await teamsService.getById(req.params.teamid);
-      // Find the membership to update
-      const membership = team.members.find(
-        (member) => member.email === req.user.email,
+      // Update the membership table
+      const response = await pool.query(
+        'UPDATE teammembers SET status = $1, updated = now() WHERE teamid = $2 AND email = $3',
+        [req.body.status, req.params.teamid, req.user.email],
       );
-      // Set to the new status
-      membership.status = req.body.status;
-      // Remove the id to allow saving
-      delete team._id;
-      teamsService.update(req.params.teamid, team);
+      if (response.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
       res.status(200);
-      return res.send(team);
+      return res.send();
     } catch (error) {
       res.status(400);
       return res.send();
     }
   },
   removeMembership: async (req, res) => {
-    // Find the team requested
-    const team = await teamsService.getById(req.params.teamid);
-    // If the team has any members, then remove this one
-    if (team.members) {
-      team.members = team.members.filter(
-        (member) => member.email !== req.user.email,
-      );
-    }
     try {
-      // Remove the id from the team to allow update
-      delete team._id;
-      // Update team and report success
-      teamsService.update(req.params.teamid, team);
+      // Delete from the membership table
+      const response = await pool.query(
+        'DELETE FROM teammembers WHERE memberid = $1 AND email = $2',
+        [req.params.memberid, req.user.email],
+      );
+      if (response.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
       res.status(200);
-      return res.send(team);
+      return res.send();
     } catch (error) {
       res.status(400);
       return res.send();
