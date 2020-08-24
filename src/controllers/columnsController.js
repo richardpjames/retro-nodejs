@@ -1,18 +1,12 @@
-// Use the templatesService for datbase operations
-const { ObjectId } = require('mongodb');
 // For connection to the database
 const postgres = require('../db/postgres');
-// Get the connection pool
-const pool = postgres.pool();
-
 // For broadcasting success to clients
 const sockets = require('../sockets/socketio');
-// Services for data
-const columnsService = require('../services/columnsService');
-const boardsService = require('../services/boardsService');
 
 // Get the socket server
 const io = sockets.io();
+// Get the connection pool
+const pool = postgres.pool();
 
 // The controller for dards
 module.exports = {
@@ -31,7 +25,7 @@ module.exports = {
       // Find the column
       const response = await pool.query(
         'SELECT * FROM columns WHERE columnid = $1',
-        [req.params.columnId],
+        [req.params.columnid],
       );
       // If nothing found then 404
       if (response.rowCount === 0) {
@@ -81,7 +75,7 @@ module.exports = {
         [
           req.body.title,
           req.body.rank,
-          req.params.columnId,
+          req.params.columnid,
           req.params.boardId,
           req.user.userid,
         ],
@@ -117,9 +111,9 @@ module.exports = {
     // Remove the column (other tables cascade)
     await pool.query(
       'DELETE FROM columns WHERE columnid = $1 and boardid = $2',
-      [req.params.columnId, req.params.boardId],
+      [req.params.columnid, req.params.boardId],
     );
-    io.to(req.params.boardId).emit('column deleted', req.params.columnId);
+    io.to(req.params.boardId).emit('column deleted', req.params.columnid);
     res.status(204);
     return res.send();
   },

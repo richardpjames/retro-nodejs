@@ -12,9 +12,9 @@ const columnsRouter = express.Router({ mergeParams: true });
 columnsRouter.use(authCheck);
 // Routes
 columnsRouter.get('/', columnsController.getAll);
-columnsRouter.get('/:columnId', columnsController.get);
+columnsRouter.get('/:columnid', columnsController.get);
 columnsRouter.post('/', columnsController.create);
-columnsRouter.put('/:columnId', columnsController.update);
-columnsRouter.delete('/:columnId', columnsController.remove);
+columnsRouter.put('/:columnid', columnsController.update);
+columnsRouter.delete('/:columnid', columnsController.remove);
 
 module.exports = columnsRouter;

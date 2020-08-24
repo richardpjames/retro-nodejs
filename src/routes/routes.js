@@ -25,7 +25,7 @@ router.use('/api/boards', boardsRouter);
 router.use('/api/boards/:boardId/cards', cardsRouter);
 router.use('/api/boards/:boardId/cards/:cardId/votes', cardVotesRouter);
 router.use('/api/boards/:boardId/columns', columnsRouter);
-router.use('/api/boards/:boardId/columns/:columnId/cards', columnCardsRouter);
+router.use('/api/boards/:boardId/columns/:columnid/cards', columnCardsRouter);
 router.use('/api/boards/:boardId/votes', votesRouter);
 router.use('/api/boards/:boardId/actions', boardActionsRouter);
 router.use('/api/templates', templatesRouter);
