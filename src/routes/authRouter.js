@@ -13,6 +13,7 @@ authRouter.post('/signup', usersController.create);
 authRouter.post('/login', usersController.login);
 authRouter.post('/forgotten', usersController.forgotten);
 authRouter.post('/reset', usersController.reset);
+authRouter.post('/refresh', usersController.refresh);
 authRouter.get('/profile', authCheck, usersController.profile);
 
 module.exports = authRouter;

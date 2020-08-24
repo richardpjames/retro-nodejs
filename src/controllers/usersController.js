@@ -2,8 +2,12 @@
 const jwt = require('jsonwebtoken');
 // For hasing passwords
 const bcrypt = require('bcrypt');
+// For refresh tokens
+const { v1: uuidv1 } = require('uuid');
 // Mailgun for emails
 const mailgun = require('mailgun-js');
+// For requesting IP info
+const axios = require('axios');
 // md5 for gravatar
 const md5 = require('md5');
 // For generating tokens
@@ -158,6 +162,29 @@ module.exports = {
       const token = jwt.sign({ user: body }, config.jwt.secret, {
         expiresIn: '24h',
       });
+      // Generate a refresh token
+      const refreshString = uuidv1();
+      // Create a refreshtoken with the user and token
+      const refreshToken = jwt.sign(
+        { user: body, token: refreshString },
+        config.jwt.refreshSecret,
+        {
+          expiresIn: '1y',
+        },
+      );
+      // Get geographic information from IPINFO
+      const { data } = await axios.get(
+        `https://ipinfo.io/${req.ip}?token=${config.keys.ipinfo}`,
+      );
+      // Write to the database
+      await pool.query(
+        'INSERT INTO tokens (userid, token, description) VALUES ($1, $2, $3)',
+        [
+          user.userid,
+          refreshString,
+          `${data.city} - ${data.region} - ${req.headers['user-agent']}`,
+        ],
+      );
       // Send back the token to the user
       res.status(200);
       if (config.application.environment === 'development') {
@@ -167,8 +194,15 @@ module.exports = {
           secure: false,
           httpOnly: true,
         });
+        res.cookie('refreshToken', refreshToken, {
+          maxAge: 365 * 24 * 60 * 60 * 1000,
+          domain: 'localhost',
+          path: '/api/auth/',
+          secure: false,
+          httpOnly: true,
+        });
         res.cookie('isAuthenticated', true, {
-          maxAge: 24 * 60 * 60 * 1000,
+          maxAge: 365 * 24 * 60 * 60 * 1000,
           domain: 'localhost',
         });
       } else {
@@ -178,8 +212,15 @@ module.exports = {
           secure: true,
           httpOnly: true,
         });
+        res.cookie('refreshToken', refreshToken, {
+          maxAge: 365 * 24 * 60 * 60 * 1000,
+          domain: 'retrospectacle.io',
+          path: '/api/auth/refresh',
+          secure: true,
+          httpOnly: true,
+        });
         res.cookie('isAuthenticated', true, {
-          maxAge: 24 * 60 * 60 * 1000,
+          maxAge: 365 * 24 * 60 * 60 * 1000,
           domain: 'retrospectacle.io',
         });
       }
@@ -187,6 +228,52 @@ module.exports = {
     } catch (error) {
       res.status(401);
       return res.send(error);
+    }
+  },
+  refresh: async (req, res) => {
+    // For storing the token
+    const { refreshToken } = req.cookies;
+    try {
+      // Verify the token
+      const verified = jwt.verify(refreshToken, config.jwt.refreshSecret);
+      // Add the user to the request
+      const result = await pool.query(
+        'SELECT * FROM tokens WHERE token = $1 AND userid = $2',
+        [verified.token, verified.user.userid],
+      );
+      // If we couldn't find the token (invalidated)
+      if (result.rowCount === 0) {
+        res.status(401);
+        return res.send();
+      }
+      // Otherwise send a new access token
+      const body = {
+        userid: verified.user.userid,
+      };
+      // Sign the JWT token and populate the payload with the user email and id
+      const token = jwt.sign({ user: body }, config.jwt.secret, {
+        expiresIn: '24h',
+      });
+      if (config.application.environment === 'development') {
+        res.cookie('token', token, {
+          maxAge: 24 * 60 * 60 * 1000,
+          domain: 'localhost',
+          secure: false,
+          httpOnly: true,
+        });
+      } else {
+        res.cookie('token', token, {
+          maxAge: 24 * 60 * 60 * 1000,
+          domain: 'retrospectacle.io',
+          secure: true,
+          httpOnly: true,
+        });
+      }
+      res.status(200);
+      return res.send();
+    } catch (error) {
+      res.status(401);
+      return res.send();
     }
   },
   profile: (req, res) => {

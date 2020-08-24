@@ -10,6 +10,7 @@ module.exports = {
   },
   jwt: {
     secret: process.env.JWT_SECRET,
+    refreshSecret: process.env.REFRESH_SECRET,
   },
   cors: {
     origin: process.env.CORS_ORIGIN || 'https://retrospectacle.io',
@@ -17,5 +18,6 @@ module.exports = {
   keys: {
     mailgun: process.env.MAILGUN_API_KEY,
     ghost: process.env.GHOST_API_KEY,
+    ipinfo: process.env.IPINFO_KEY,
   },
 };
