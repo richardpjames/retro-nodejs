@@ -1,12 +1,5 @@
-// For generating mongo object Ids
-const { ObjectId } = require('mongodb');
 // For broadcasting success to clients
 const sockets = require('../sockets/socketio');
-// Services required for managing data
-const actionsService = require('../services/actionsService');
-const teamsService = require('../services/teamsService');
-const boardsService = require('../services/boardsService');
-const usersService = require('../services/usersService');
 
 // For connection to the database
 const postgres = require('../db/postgres');
@@ -29,44 +22,17 @@ module.exports = {
     return res.send(actions);
   },
   getForUser: async (req, res) => {
-    const teams = await teamsService.query({
-      $or: [
-        { members: { $elemMatch: { email: req.user.email } } },
-        { userid: req.user._id },
-      ],
-    });
-    const teamids = teams.map((team) => team._id);
-    const boards = await boardsService.query({
-      $or: [{ userid: req.user._id }, { teamid: { $in: teamids } }],
-    });
-    const boardids = boards.map((board) => board._id);
-    const actions = await actionsService.query({ boardid: { $in: boardids } });
-
-    await Promise.all(
-      actions.map(async (action) => {
-        const _board = boards.find((b) => b._id.equals(action.boardid));
-        if (_board) {
-          action.boardName = _board.name;
-          if (_board.teamid) {
-            const _team = teams.find((t) => t._id.equals(_board.teamid));
-            if (_team) {
-              action.teamName = _team.name;
-            }
-          }
-        }
-        // Updates all of the updated within an action with the user information
-        await Promise.all(
-          action.updates.map((update) => {
-            return usersService.getById(update.userid).then((user) => {
-              update.nickname = user.nickname;
-            });
-          }),
-        );
-        return true;
-      }),
-    );
-    res.status(200);
-    return res.send(actions);
+    try {
+      const response = await pool.query(
+        'SELECT DISTINCT a.*, b.name AS boardname, t.name as teamname FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2',
+        [req.user.userid, req.user.email],
+      );
+      res.status(200);
+      return res.send(response.rows);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
   },
   create: async (req, res) => {
     try {
