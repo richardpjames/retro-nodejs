@@ -14,5 +14,10 @@ columnCardsRouter.use(authCheck);
 columnCardsRouter.post('/', cardsController.create);
 columnCardsRouter.put('/:cardid', cardsController.update);
 columnCardsRouter.delete('/:cardid', cardsController.remove);
+columnCardsRouter.post('/:cardid/combined', cardsController.addCombined);
+columnCardsRouter.delete(
+  '/:cardid/combined/:combinedid',
+  cardsController.removeCombined,
+);
 
 module.exports = columnCardsRouter;

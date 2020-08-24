@@ -15,7 +15,7 @@ module.exports = {
     try {
       // Get the cards based on the board and column id
       const response = await pool.query(
-        'SELECT c.*, u.userid, u.nickname FROM cards c LEFT JOIN columns c2 ON c.columnid = c2.columnid LEFT JOIN boards b ON c2.boardid = b.boardid LEFT JOIN users u ON c.userid = u.userid WHERE b.uuid = $1',
+        `SELECT c.cardid, c.text, c.rank, c.colour, c.userid, c.columnid, c.created, c.updated, u.userid, u.nickname, COALESCE(json_agg(cc) FILTER(WHERE cc.combinedid IS NOT NULL), '[]') AS combinedcards FROM cards c LEFT JOIN columns c2 ON c.columnid = c2.columnid LEFT JOIN boards b ON c2.boardid = b.boardid LEFT JOIN users u ON c.userid = u.userid LEFT JOIN combinedcards cc ON cc.cardid = c.cardid WHERE b.uuid = $1 GROUP BY c.cardid, c.text, c.rank, c.colour, c.userid, c.columnid, c.created, c.updated, u.userid, u.nickname`,
         [req.params.boardid],
       );
       // Get the cards from the response
@@ -119,6 +119,39 @@ module.exports = {
       }
       // Send responses
       io.to(req.params.boardid).emit('card deleted', req.params.cardid);
+      res.status(204);
+      return res.send();
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
+  addCombined: async (req, res) => {
+    try {
+      // Insert the combined card
+      const response = await pool.query(
+        'INSERT INTO combinedcards (text, colour, userid, cardid, created, updated) VALUES ($1, $2, $3, $4, now(), now()) RETURNING *',
+        [req.body.text, req.body.colour, req.body.userid, req.params.cardid],
+      );
+      return res.send(response.rows[0]);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
+  removeCombined: async (req, res) => {
+    try {
+      // Insert the combined card
+      const response = await pool.query(
+        'DELETE FROM combinedcards WHERE combinedid = $1 and cardid = $2',
+        [req.params.combinedid, req.params.cardid],
+      );
+      // If nothing deleted
+      if (response.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Othriwse send 204
       res.status(204);
       return res.send();
     } catch (error) {
