@@ -172,10 +172,9 @@ module.exports = {
           expiresIn: '1y',
         },
       );
-      console.log(req);
       // Get geographic information from IPINFO
       const { data } = await axios.get(
-        `https://ipinfo.io/${req.ip}?token=${config.keys.ipinfo}`,
+        `https://ipinfo.io/${req.headers['x-forwarded-for']}?token=${config.keys.ipinfo}`,
       );
       // Write to the database
       await pool.query(
