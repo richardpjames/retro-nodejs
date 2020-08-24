@@ -241,15 +241,6 @@ module.exports = {
     }
   },
   logout: async (req, res) => {
-    // For storing the token
-    const { refreshToken } = req.cookies;
-    // Verify the token
-    const verified = jwt.verify(refreshToken, config.jwt.refreshSecret);
-    // Add the user to the request
-    await pool.query('DELETE FROM tokens WHERE token = $1 AND userid = $2', [
-      verified.token,
-      verified.user.userid,
-    ]);
     if (config.application.environment === 'development') {
       res.cookie('token', null, {
         maxAge: 0,
@@ -288,52 +279,6 @@ module.exports = {
       });
     }
     return res.send();
-  },
-  refresh: async (req, res) => {
-    try {
-      // For storing the token
-      const { refreshToken } = req.cookies;
-      // Verify the token
-      const verified = jwt.verify(refreshToken, config.jwt.refreshSecret);
-      // Add the user to the request
-      const result = await pool.query(
-        'SELECT * FROM tokens WHERE token = $1 AND userid = $2 AND expiry < now()',
-        [verified.token, verified.user.userid],
-      );
-      // If we couldn't find the token (invalidated)
-      if (result.rowCount === 0) {
-        res.status(401);
-        return res.send();
-      }
-      // Otherwise send a new access token
-      const body = {
-        userid: verified.user.userid,
-      };
-      // Sign the JWT token and populate the payload with the user email and id
-      const token = jwt.sign({ user: body }, config.jwt.secret, {
-        expiresIn: '24h',
-      });
-      if (config.application.environment === 'development') {
-        res.cookie('token', token, {
-          maxAge: 24 * 60 * 60 * 1000,
-          domain: 'localhost',
-          secure: false,
-          httpOnly: true,
-        });
-      } else {
-        res.cookie('token', token, {
-          maxAge: 24 * 60 * 60 * 1000,
-          domain: 'retrospectacle.io',
-          secure: true,
-          httpOnly: true,
-        });
-      }
-      res.status(200);
-      return res.send();
-    } catch (error) {
-      res.status(401);
-      return res.send();
-    }
   },
   profile: (req, res) => {
     // This returns the profile for the current user extracted from the cookie
