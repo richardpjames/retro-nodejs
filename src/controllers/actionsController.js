@@ -91,6 +91,7 @@ module.exports = {
           req.body.status || originalAction.status,
           req.body.due || originalAction.due,
           req.body.closed || originalAction.closed,
+          req.params.actionid,
         ],
       );
       const [updatedAction] = response.rows;
