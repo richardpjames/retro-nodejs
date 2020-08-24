@@ -16,7 +16,14 @@ teamsRouter.get('/:teamid', teamsController.get);
 teamsRouter.post('/', teamsController.create);
 teamsRouter.put('/:teamid', teamsController.update);
 teamsRouter.delete('/:teamid', teamsController.remove);
-teamsRouter.put('/:teamid/memberships', teamsController.updateMembership);
-teamsRouter.delete('/:teamid/memberships', teamsController.removeMembership);
+teamsRouter.post('/:teamid/memberships', teamsController.addMembership);
+teamsRouter.put(
+  '/:teamid/memberships/:memberid',
+  teamsController.updateMembership,
+);
+teamsRouter.delete(
+  '/:teamid/memberships/:memberid',
+  teamsController.removeMembership,
+);
 
 module.exports = teamsRouter;

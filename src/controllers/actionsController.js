@@ -24,7 +24,7 @@ module.exports = {
   getForUser: async (req, res) => {
     try {
       const response = await pool.query(
-        'SELECT DISTINCT a.*, b.name AS boardname, t.name as teamname FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2',
+        `SELECT a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, a.owner, b.name AS boardname, t.name as teamname, COALESCE(json_agg(au) FILTER(WHERE au.updateid IS NOT NULL), '[]') as updates FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid LEFT JOIN (SELECT actionupdates.*, users.nickname FROM actionupdates INNER JOIN users ON actionupdates.userid = users.userid) AS au ON au.actionid = a.actionid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2 GROUP BY a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, a.owner, b.name, t.name`,
         [req.user.userid, req.user.email],
       );
       res.status(200);

@@ -8,7 +8,7 @@ module.exports = {
   // Get all simply returns all teams from the database for this user
   getAll: async (req, res) => {
     const response = await pool.query(
-      'SELECT t.* FROM teams t LEFT JOIN teammembers tm ON t.teamid = t.teamid WHERE t.userid = $1 or tm.email = $2',
+      `SELECT t.teamid, t.name, t.userid, t.created, t.updated, COALESCE(json_agg(tm) FILTER(WHERE tm.memberid IS NOT NULL), '[]') AS members FROM teams t LEFT JOIN teammembers tm ON t.teamid = tm.teamid WHERE t.userid = $1 or tm.email = $2 GROUP BY t.teamid, t.name, t.userid, t.created, t.updated`,
       [req.user.userid, req.user.email],
     );
     res.status(200);
@@ -90,12 +90,44 @@ module.exports = {
     res.status(204);
     return res.send();
   },
+  addMembership: async (req, res) => {
+    try {
+      // Check that the requester owns the team
+      const check = await pool.query(
+        'SELECT * FROM teams WHERE teamid = $1 AND userid = $2',
+        [req.params.teamid, req.user.userid],
+      );
+      if (check.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      // Insert the membership
+      const response = await pool.query(
+        'INSERT INTO teammembers (email, status, teamid, created, updated) VALUES ($1, $2, $3, now(), now()) RETURNING *',
+        [req.body.email, req.body.status, req.params.teamid],
+      );
+      // If nothing inserted then there was an error
+      if (response.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      return res.send(response.rows[0]);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
   updateMembership: async (req, res) => {
     try {
       // Update the membership table
       const response = await pool.query(
-        'UPDATE teammembers SET status = $1, updated = now() WHERE teamid = $2 AND email = $3',
-        [req.body.status, req.params.teamid, req.user.email],
+        'UPDATE teammembers SET status = $1, updated = now() WHERE teamid = $2 AND email = $3 AND memberid = $4',
+        [
+          req.body.status,
+          req.params.teamid,
+          req.user.email,
+          req.params.memberid,
+        ],
       );
       if (response.rowCount === 0) {
         res.status(400);
@@ -112,8 +144,13 @@ module.exports = {
     try {
       // Delete from the membership table
       const response = await pool.query(
-        'DELETE FROM teammembers WHERE memberid = $1 AND email = $2',
-        [req.params.memberid, req.user.email],
+        'DELETE FROM teammembers WHERE memberid = $1 AND teamid = $2 AND memberid IN (SELECT memberid FROM teammembers tm INNER JOIN teams t ON tm.teamid = t.teamid WHERE tm.email = $3 OR t.userid = $4)',
+        [
+          req.params.memberid,
+          req.params.teamid,
+          req.user.email,
+          req.user.userid,
+        ],
       );
       if (response.rowCount === 0) {
         res.status(400);
@@ -123,7 +160,7 @@ module.exports = {
       return res.send();
     } catch (error) {
       res.status(400);
-      return res.send();
+      return res.send(error);
     }
   },
 };
