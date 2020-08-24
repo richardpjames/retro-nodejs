@@ -121,4 +121,40 @@ module.exports = {
     res.status(204);
     return res.send();
   },
+  addUpdate: async (req, res) => {
+    try {
+      // Insert the update
+      const response = await pool.query(
+        'INSERT INTO actionupdates (update, userid, actionid, created, updated) VALUES ($1, $2, $3, now(), now()) RETURNING *',
+        [req.body.update, req.user.userid, req.params.actionid],
+      );
+      // If nothing inserted then there was an error
+      if (response.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      return res.send(response.rows[0]);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
+  removeUpdate: async (req, res) => {
+    try {
+      // Insert the update
+      const response = await pool.query(
+        'DELETE FROM actionupdates WHERE userid = $1 AND updateid = $2',
+        [req.user.userid, req.params.updateid],
+      );
+      // If nothing inserted then there was an error
+      if (response.rowCount === 0) {
+        res.status(400);
+        return res.send();
+      }
+      return res.send(response.rows[0]);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
+  },
 };
