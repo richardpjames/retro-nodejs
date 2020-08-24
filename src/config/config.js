@@ -6,7 +6,6 @@ module.exports = {
     baseUrl: process.env.BASE_URL || 'https://retrospectacle.io',
   },
   database: {
-    url: process.env.MONGO_URL || 'mongodb://localhost:27017',
     connectionString: process.env.DATABASE_URL,
   },
   jwt: {
