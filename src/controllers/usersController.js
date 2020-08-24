@@ -172,17 +172,27 @@ module.exports = {
           expiresIn: '1y',
         },
       );
+      // Work out the expiry (one year from now)
+      const expiryDate = new Date(
+        new Date().setFullYear(new Date().getFullYear() + 1),
+      );
+
       // Get geographic information from IPINFO
       const { data } = await axios.get(
-        `https://ipinfo.io/${req.headers['x-forwarded-for']}?token=${config.keys.ipinfo}`,
+        `https://ipinfo.io/${
+          req.headers['x-forwarded-for'] || '127.0.0.1'
+        }?token=${config.keys.ipinfo}`,
       );
       // Write to the database
       await pool.query(
-        'INSERT INTO tokens (userid, token, description) VALUES ($1, $2, $3)',
+        'INSERT INTO tokens (userid, token, description, expiry) VALUES ($1, $2, $3, $4)',
         [
           user.userid,
           refreshString,
-          `${data.city} - ${data.region} - ${req.headers['user-agent']}`,
+          data.city
+            ? `${data.city}, ${data.region} - ${req.headers['user-agent']}`
+            : `Unknown Location - ${req.headers['user-agent']}`,
+          expiryDate,
         ],
       );
       // Send back the token to the user
@@ -230,15 +240,64 @@ module.exports = {
       return res.send(error);
     }
   },
-  refresh: async (req, res) => {
+  logout: async (req, res) => {
     // For storing the token
     const { refreshToken } = req.cookies;
+    // Verify the token
+    const verified = jwt.verify(refreshToken, config.jwt.refreshSecret);
+    // Add the user to the request
+    await pool.query('DELETE FROM tokens WHERE token = $1 AND userid = $2', [
+      verified.token,
+      verified.user.userid,
+    ]);
+    if (config.application.environment === 'development') {
+      res.cookie('token', null, {
+        maxAge: 0,
+        domain: 'localhost',
+        secure: false,
+        httpOnly: true,
+      });
+      res.cookie('refreshToken', null, {
+        maxAge: 0,
+        domain: 'localhost',
+        path: '/api/auth/',
+        secure: false,
+        httpOnly: true,
+      });
+      res.cookie('isAuthenticated', null, {
+        maxAge: 0,
+        domain: 'localhost',
+      });
+    } else {
+      res.cookie('token', null, {
+        maxAge: 0,
+        domain: 'retrospectacle.io',
+        secure: true,
+        httpOnly: true,
+      });
+      res.cookie('refreshToken', null, {
+        maxAge: 0,
+        domain: 'retrospectacle.io',
+        path: '/api/auth/refresh',
+        secure: true,
+        httpOnly: true,
+      });
+      res.cookie('isAuthenticated', null, {
+        maxAge: 0,
+        domain: 'retrospectacle.io',
+      });
+    }
+    return res.send();
+  },
+  refresh: async (req, res) => {
     try {
+      // For storing the token
+      const { refreshToken } = req.cookies;
       // Verify the token
       const verified = jwt.verify(refreshToken, config.jwt.refreshSecret);
       // Add the user to the request
       const result = await pool.query(
-        'SELECT * FROM tokens WHERE token = $1 AND userid = $2',
+        'SELECT * FROM tokens WHERE token = $1 AND userid = $2 AND expiry < now()',
         [verified.token, verified.user.userid],
       );
       // If we couldn't find the token (invalidated)
