@@ -37,6 +37,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Session storage
+console.log(config.sessions.cookieDomain);
+console.log(config.sessions.cookieSecure);
+
 app.use(
   session({
     store: new PgSession({
@@ -47,8 +50,6 @@ app.use(
     resave: false,
     saveUninitialized: true,
     cookie: {
-      domain: config.sessions.cookieDomain,
-      path: '/',
       secure: config.sessions.cookieSecure === 'true',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     },
