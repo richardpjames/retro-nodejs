@@ -49,6 +49,7 @@ app.use(
     cookie: {
       domain: config.sessions.cookieDomain,
       secure: config.sessions.cookieSecure === 'true',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     },
   }),
 );

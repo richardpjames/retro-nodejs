@@ -1,7 +1,5 @@
 // For hasing passwords
 const bcrypt = require('bcrypt');
-// For promisify
-const util = require('util');
 // Mailgun for emails
 const mailgun = require('mailgun-js');
 // md5 for gravatar
@@ -120,6 +118,14 @@ module.exports = {
           req.params.userid,
         ],
       );
+      // If update succesful then invalidate all other sessions (on password change)
+      if (req.body.newPassword) {
+        // Invalidate all other sessions
+        await pool.query(
+          `DELETE FROM session WHERE CAST(sess -> 'user' ->> 'userid' AS INTEGER) = $1 AND sid != $2`,
+          [req.session.user.userid, req.session.id],
+        );
+      }
       return res.send(result2.rows[0]);
     } catch (error) {
       res.status(400);
@@ -276,6 +282,11 @@ module.exports = {
       await pool.query(
         'UPDATE users SET password = $1, resettoken = null, updated = now() WHERE userid = $2',
         [hashPassword, userid],
+      );
+      // Invalidate all other sessions
+      await pool.query(
+        `DELETE FROM session WHERE CAST(sess -> 'user' ->> 'userid' AS INTEGER) = $1`,
+        [userid],
       );
       return res.send();
     } catch (error) {
