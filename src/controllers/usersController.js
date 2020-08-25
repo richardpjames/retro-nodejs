@@ -13,6 +13,9 @@ const postgres = require('../db/postgres');
 // Get the pool for the database
 const pool = postgres.pool();
 
+// Regular expression for password checking
+const passCheck = /(?=^.{8,}$)(?=.*\d)(?=.*[!@#$%^&*]+)(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/;
+
 // The controller for users
 module.exports = {
   // For getting all users
@@ -104,6 +107,11 @@ module.exports = {
       }
       // If there is a new password then replace the old
       if (req.body.newPassword) {
+        // If the password does not meet the requirements
+        if (!req.body.newPassword.match(passCheck)) {
+          res.status(400);
+          return res.send();
+        }
         req.body.password = await bcrypt.hash(req.body.newPassword, 10);
       } else {
         // Remove the password if not being updated
@@ -272,6 +280,11 @@ module.exports = {
     const [user] = result.rows;
     // Check the validity of the reset token
     if (user.resettoken !== resetToken) {
+      res.status(400);
+      return res.send();
+    }
+    // If the password does not meet the requirements
+    if (!password.match(passCheck)) {
       res.status(400);
       return res.send();
     }
