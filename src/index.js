@@ -48,6 +48,7 @@ app.use(
     saveUninitialized: true,
     cookie: {
       domain: config.sessions.cookieDomain,
+      path: '/',
       secure: config.sessions.cookieSecure === 'true',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     },
