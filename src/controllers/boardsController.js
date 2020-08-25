@@ -61,6 +61,17 @@ module.exports = {
           return res.send();
         }
       }
+      // If all of that passed then record that the user has accessed the board
+      const visitResponse = await pool.query(
+        'INSERT INTO boardusers (userid, boardid, created, updated) VALUES ($1, $2, now(), now()) ON CONFLICT ON CONSTRAINT unique_user_board DO NOTHING'[
+          (req.session.user.userid, board.boardid)
+        ],
+      );
+      if (visitResponse.rowCount >= 0) {
+        io.to(req.params.boardid).emit('user added', {
+          userid: req.session.user.userid,
+        });
+      }
       res.status(200);
       return res.send(board);
       // If any errors, then catch and throw 500
