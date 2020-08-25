@@ -46,7 +46,6 @@ app.use(
     name: 'retrospectacle_session',
     resave: false,
     saveUninitialized: true,
-    proxy: true,
     cookie: {
       domain: config.sessions.cookieDomain,
       path: '/',
