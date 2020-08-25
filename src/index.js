@@ -11,12 +11,18 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 // Debug allows the output of debug messages in development/production depending on environment variables
 const debug = require('debug')('app');
+// For managing users and sessions
+const session = require('express-session');
+const PgSession = require('connect-pg-simple')(session);
+// For security
+const helmet = require('helmet');
 // Load modules from inside the application
 const config = require('./config/config');
 // Database utlities
 const postgres = require('./db/postgres');
 // Socket.io for realtime updates
 const socketio = require('./sockets/socketio');
+// For session storage
 
 // Connect to postgres
 postgres.connectToServer();
@@ -29,6 +35,26 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 // Set up the cookie parser
 app.use(cookieParser());
+
+// Session storage
+app.use(
+  session({
+    store: new PgSession({
+      pool: postgres.pool(),
+    }),
+    secret: config.sessions.sessionSecret,
+    name: 'retrospectacle_session',
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      domain: config.sessions.cookieDomain,
+      secure: config.sessions.cookieSecure === 'true',
+    },
+  }),
+);
+
+// For seucurity
+app.use(helmet());
 
 // Add express and socket.io to the http server
 const server = http.createServer(app);

@@ -1,13 +1,9 @@
-// Jwt for authorisation
-const jwt = require('jsonwebtoken');
 // For hasing passwords
 const bcrypt = require('bcrypt');
-// For refresh tokens
-const { v1: uuidv1 } = require('uuid');
+// For promisify
+const util = require('util');
 // Mailgun for emails
 const mailgun = require('mailgun-js');
-// For requesting IP info
-const axios = require('axios');
 // md5 for gravatar
 const md5 = require('md5');
 // For generating tokens
@@ -104,7 +100,7 @@ module.exports = {
         user.password,
       );
       // If the password is incorrect or this isn't the current user
-      if (!passwordCheck || !req.user.userid === req.params.userid) {
+      if (!passwordCheck || !req.session.user.userid === req.params.userid) {
         res.status(400);
         return res.send();
       }
@@ -154,141 +150,43 @@ module.exports = {
         res.status(401);
         return res.send();
       }
-      // Otherwise send the user details in the token body
-      const body = {
-        userid: user.userid,
-      };
-      // Sign the JWT token and populate the payload with the user email and id
-      const token = jwt.sign({ user: body }, config.jwt.secret, {
-        expiresIn: '24h',
+      // Regenerate the session to log in
+      req.session.regenerate((err) => {
+        if (err) {
+          res.status(401);
+          req.send();
+        }
+        // Set the session variable
+        req.session.user = user;
+        // Send back the token to the user
+        res.status(200);
+        return res.send();
       });
-      // Generate a refresh token
-      const refreshString = uuidv1();
-      // Create a refreshtoken with the user and token
-      const refreshToken = jwt.sign(
-        { user: body, token: refreshString },
-        config.jwt.refreshSecret,
-        {
-          expiresIn: '1y',
-        },
-      );
-      // Work out the expiry (one year from now)
-      const expiryDate = new Date(
-        new Date().setFullYear(new Date().getFullYear() + 1),
-      );
-
-      // Get geographic information from IPINFO
-      const { data } = await axios.get(
-        `https://ipinfo.io/${
-          req.headers['x-forwarded-for'] || '127.0.0.1'
-        }?token=${config.keys.ipinfo}`,
-      );
-      // Write to the database
-      await pool.query(
-        'INSERT INTO tokens (userid, token, description, expiry) VALUES ($1, $2, $3, $4)',
-        [
-          user.userid,
-          refreshString,
-          data.city
-            ? `${data.city}, ${data.region} - ${req.headers['user-agent']}`
-            : `Unknown Location - ${req.headers['user-agent']}`,
-          expiryDate,
-        ],
-      );
-      // Send back the token to the user
-      res.status(200);
-      if (config.application.environment === 'development') {
-        res.cookie('token', token, {
-          maxAge: 24 * 60 * 60 * 1000,
-          domain: 'localhost',
-          secure: false,
-          httpOnly: true,
-        });
-        res.cookie('refreshToken', refreshToken, {
-          maxAge: 365 * 24 * 60 * 60 * 1000,
-          domain: 'localhost',
-          path: '/api/auth/',
-          secure: false,
-          httpOnly: true,
-        });
-        res.cookie('isAuthenticated', true, {
-          maxAge: 365 * 24 * 60 * 60 * 1000,
-          domain: 'localhost',
-        });
-      } else {
-        res.cookie('token', token, {
-          maxAge: 24 * 60 * 60 * 1000,
-          domain: 'retrospectacle.io',
-          secure: true,
-          httpOnly: true,
-        });
-        res.cookie('refreshToken', refreshToken, {
-          maxAge: 365 * 24 * 60 * 60 * 1000,
-          domain: 'retrospectacle.io',
-          path: '/api/auth/refresh',
-          secure: true,
-          httpOnly: true,
-        });
-        res.cookie('isAuthenticated', true, {
-          maxAge: 365 * 24 * 60 * 60 * 1000,
-          domain: 'retrospectacle.io',
-        });
-      }
-      return res.send();
     } catch (error) {
       res.status(401);
       return res.send(error);
     }
   },
   logout: async (req, res) => {
-    if (config.application.environment === 'development') {
-      res.cookie('token', null, {
-        maxAge: 0,
-        domain: 'localhost',
-        secure: false,
-        httpOnly: true,
-      });
-      res.cookie('refreshToken', null, {
-        maxAge: 0,
-        domain: 'localhost',
-        path: '/api/auth/',
-        secure: false,
-        httpOnly: true,
-      });
-      res.cookie('isAuthenticated', null, {
-        maxAge: 0,
-        domain: 'localhost',
-      });
-    } else {
-      res.cookie('token', null, {
-        maxAge: 0,
-        domain: 'retrospectacle.io',
-        secure: true,
-        httpOnly: true,
-      });
-      res.cookie('refreshToken', null, {
-        maxAge: 0,
-        domain: 'retrospectacle.io',
-        path: '/api/auth/refresh',
-        secure: true,
-        httpOnly: true,
-      });
-      res.cookie('isAuthenticated', null, {
-        maxAge: 0,
-        domain: 'retrospectacle.io',
-      });
-    }
-    return res.send();
+    // Destroy the session
+    req.session.destroy((err) => {
+      if (err) {
+        res.status(400);
+        res.send();
+      }
+      // Send 200 response
+      return res.send();
+    });
   },
   profile: (req, res) => {
     // This returns the profile for the current user extracted from the cookie
-    if (req.user) {
+    if (req.session.user) {
       return res.send({
-        userid: req.user.userid,
-        email: req.user.email,
-        nickname: req.user.nickname,
+        userid: req.session.user.userid,
+        email: req.session.user.email,
+        nickname: req.session.user.nickname,
         picture: `https://www.gravatar.com/avatar/${md5(
-          req.user.email.trim().toLowerCase(),
+          req.session.user.email.trim().toLowerCase(),
         )}?s=256`,
       });
     }
@@ -384,5 +282,14 @@ module.exports = {
       res.status(400);
       return res.send();
     }
+  },
+  check: async (req, res) => {
+    // If there is a user in the session then return 200
+    if (req.session.user) {
+      res.status(200);
+      return res.send();
+    }
+    res.status(401);
+    return res.send();
   },
 };

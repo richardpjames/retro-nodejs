@@ -47,7 +47,7 @@ module.exports = {
       // Check the user owns this board
       const checkResponse = await pool.query(
         'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
-        [req.params.boardid, req.user.userid],
+        [req.params.boardid, req.session.user.userid],
       );
       // If there is no board (or it was locked)
       if (checkResponse.rowCount === 0) {
@@ -77,7 +77,7 @@ module.exports = {
           req.body.rank,
           req.params.columnid,
           req.params.boardid,
-          req.user.userid,
+          req.session.user.userid,
         ],
       );
       // If nothing was update then send an error
@@ -101,7 +101,7 @@ module.exports = {
     // Check the user owns this board
     const checkResponse = pool.query(
       'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
-      [req.params.boardid, req.user.userid],
+      [req.params.boardid, req.session.user.userid],
     );
     // If there is no board (or it was locked)
     if (checkResponse.rowCount === 0) {

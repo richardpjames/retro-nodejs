@@ -65,7 +65,7 @@ module.exports = {
       }
       const response = await pool.query(
         'DELETE FROM votes WHERE voteid = $1 and userid = $2',
-        [req.params.voteid, req.user.userid],
+        [req.params.voteid, req.session.user.userid],
       );
       // If nothing deleted
       if (response.rowCount === 0) {

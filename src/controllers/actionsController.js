@@ -25,7 +25,7 @@ module.exports = {
     try {
       const response = await pool.query(
         `SELECT a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, a.owner, b.name AS boardname, t.name as teamname, COALESCE(json_agg(au) FILTER(WHERE au.updateid IS NOT NULL), '[]') as updates FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid LEFT JOIN (SELECT actionupdates.*, users.nickname FROM actionupdates INNER JOIN users ON actionupdates.userid = users.userid) AS au ON au.actionid = a.actionid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2 GROUP BY a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, a.owner, b.name, t.name`,
-        [req.user.userid, req.user.email],
+        [req.session.user.userid, req.session.user.email],
       );
       res.status(200);
       return res.send(response.rows);
@@ -55,7 +55,7 @@ module.exports = {
           req.body.status,
           req.body.due,
           req.body.closed,
-          req.user.userid,
+          req.session.user.userid,
           req.params.boardid,
         ],
       );
@@ -126,7 +126,7 @@ module.exports = {
       // Insert the update
       const response = await pool.query(
         'INSERT INTO actionupdates (update, userid, actionid, created, updated) VALUES ($1, $2, $3, now(), now()) RETURNING *',
-        [req.body.update, req.user.userid, req.params.actionid],
+        [req.body.update, req.session.user.userid, req.params.actionid],
       );
       // If nothing inserted then there was an error
       if (response.rowCount === 0) {
@@ -144,7 +144,7 @@ module.exports = {
       // Insert the update
       const response = await pool.query(
         'DELETE FROM actionupdates WHERE userid = $1 AND updateid = $2',
-        [req.user.userid, req.params.updateid],
+        [req.session.user.userid, req.params.updateid],
       );
       // If nothing inserted then there was an error
       if (response.rowCount === 0) {

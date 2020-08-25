@@ -17,7 +17,11 @@ module.exports = {
     // Get all from the database
     const response = await pool.query(
       'SELECT DISTINCT b.* FROM boards b LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON t.teamid = tm.teamid WHERE b.userid = $1 OR t.userid = $2 OR tm.email = $3',
-      [req.user.userid, req.user.userid, req.user.email],
+      [
+        req.session.user.userid,
+        req.session.user.userid,
+        req.session.user.email,
+      ],
     );
     res.status(200);
     return res.send(response.rows);
@@ -42,13 +46,18 @@ module.exports = {
         // Find which teams this user is in
         const response2 = await pool.query(
           'SELECT t.* FROM teams t LEFT JOIN teammembers tm ON t.teamid = t.teamid WHERE t.userid = $1 or tm.email = $2',
-          [req.user.userid, req.user.email],
+          [req.session.user.userid, req.session.user.email],
         );
         // Get the teams from the query result
         const teams = response2.rows;
         const teamids = teams.map((team) => team.teamid);
-        if (!teamids.includes(board.teamid)) {
-          res.status(401);
+        if (
+          !(
+            teamids.includes(board.teamid) ||
+            board.userid === req.session.user.userid
+          )
+        ) {
+          res.status(403);
           return res.send();
         }
       }
@@ -93,7 +102,7 @@ module.exports = {
           req.body.allowvotes || false,
           req.body.showinstructions || false,
           req.body.locked || false,
-          req.user.userid,
+          req.session.user.userid,
           req.body.teamid,
         ],
       );
@@ -120,7 +129,7 @@ module.exports = {
     // Get the board from the database
     const response = await pool.query(
       'SELECT * FROM boards WHERE boardid = $1 AND userid = $2 AND locked = false',
-      [req.params.boardid, req.user.userid],
+      [req.params.boardid, req.session.user.userid],
     );
     // Prevent users from updating others boards or updating locked boards
     if (response.rowCount === 0) {
@@ -160,7 +169,7 @@ module.exports = {
     // Delete the board (cascading deletes remove the rest)
     const response = await pool.query(
       'DELETE FROM boards WHERE boardid = $1 and userid = $2',
-      [req.params.boardid, req.user.userid],
+      [req.params.boardid, req.session.user.userid],
     );
     // If nothing was deleted
     if (response.rowCount === 0) {

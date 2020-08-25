@@ -8,16 +8,16 @@ module.exports = {
   database: {
     connectionString: process.env.DATABASE_URL,
   },
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    refreshSecret: process.env.REFRESH_SECRET,
-  },
   cors: {
     origin: process.env.CORS_ORIGIN || 'https://retrospectacle.io',
   },
   keys: {
     mailgun: process.env.MAILGUN_API_KEY,
     ghost: process.env.GHOST_API_KEY,
-    ipinfo: process.env.IPINFO_KEY,
+  },
+  sessions: {
+    sessionSecret: process.env.SESSION_SECRET,
+    cookieDomain: process.env.COOKIE_DOMAIN || 'retrospectacle.io',
+    cookieSecure: process.env.COOKIE_SECURE,
   },
 };

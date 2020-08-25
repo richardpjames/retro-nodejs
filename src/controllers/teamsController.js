@@ -9,7 +9,7 @@ module.exports = {
   getAll: async (req, res) => {
     const response = await pool.query(
       `SELECT t.teamid, t.name, t.userid, t.created, t.updated, COALESCE(json_agg(tm) FILTER(WHERE tm.memberid IS NOT NULL), '[]') AS members FROM teams t LEFT JOIN teammembers tm ON t.teamid = tm.teamid WHERE t.userid = $1 or tm.email = $2 GROUP BY t.teamid, t.name, t.userid, t.created, t.updated`,
-      [req.user.userid, req.user.email],
+      [req.session.user.userid, req.session.user.email],
     );
     res.status(200);
     return res.send(response.rows);
@@ -41,7 +41,7 @@ module.exports = {
     try {
       const response = await pool.query(
         'INSERT INTO teams (name, userid, created, updated) VALUES ($1, $2, now(), now()) RETURNING *',
-        [req.body.name, req.user.userid],
+        [req.body.name, req.session.user.userid],
       );
       // If everything is inserted then return
       res.status(200);
@@ -79,7 +79,7 @@ module.exports = {
     // Remove the team (checking userid)
     const response = await pool.query(
       'DELETE FROM teams WHERE teamid = $1 AND userid = $2',
-      [req.params.teamid, req.user.userid],
+      [req.params.teamid, req.session.user.userid],
     );
     // Check that any teams were actually deleted
     if (response.rowCount === 0) {
@@ -95,7 +95,7 @@ module.exports = {
       // Check that the requester owns the team
       const check = await pool.query(
         'SELECT * FROM teams WHERE teamid = $1 AND userid = $2',
-        [req.params.teamid, req.user.userid],
+        [req.params.teamid, req.session.user.userid],
       );
       if (check.rowCount === 0) {
         res.status(400);
@@ -125,7 +125,7 @@ module.exports = {
         [
           req.body.status,
           req.params.teamid,
-          req.user.email,
+          req.session.user.email,
           req.params.memberid,
         ],
       );
@@ -148,8 +148,8 @@ module.exports = {
         [
           req.params.memberid,
           req.params.teamid,
-          req.user.email,
-          req.user.userid,
+          req.session.user.email,
+          req.session.user.userid,
         ],
       );
       if (response.rowCount === 0) {

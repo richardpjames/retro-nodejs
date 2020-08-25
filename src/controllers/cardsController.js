@@ -46,7 +46,7 @@ module.exports = {
           req.body.text,
           req.body.rank,
           req.body.colour,
-          req.body.userid || req.user.userid,
+          req.body.userid || req.session.user.userid,
           req.body.columnid,
         ],
       );
@@ -78,7 +78,7 @@ module.exports = {
       const [originalCard] = check.rows;
       // Changing the text of the card is not allowed unless you are the owner
       if (
-        !originalCard.userid === req.user.userid &&
+        !originalCard.userid === req.session.user.userid &&
         req.body.text !== originalCard.text
       ) {
         res.status(400);
