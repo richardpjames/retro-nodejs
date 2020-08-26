@@ -63,19 +63,21 @@ module.exports = {
           return res.send();
         }
       }
-      // If all of that passed then record that the user has accessed the board
-      const visitResponse = await pool.query(
-        'INSERT INTO boardusers (userid, boardid, created, updated) VALUES ($1, $2, now(), now()) ON CONFLICT ON CONSTRAINT unique_user_board DO NOTHING',
-        [req.session.user.userid, board.boardid],
-      );
-      if (visitResponse.rowCount >= 0) {
-        const md5email = md5(req.session.user.email);
-        io.to(board.boardid).emit('board user created', {
-          userid: req.session.user.userid,
-          nickname: req.session.user.nickname,
-          email: req.session.user.email,
-          picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=identicon`,
-        });
+      if (!board.locked) {
+        // If all of that passed then record that the user has accessed the board
+        const visitResponse = await pool.query(
+          'INSERT INTO boardusers (userid, boardid, created, updated) VALUES ($1, $2, now(), now()) ON CONFLICT ON CONSTRAINT unique_user_board DO NOTHING',
+          [req.session.user.userid, board.boardid],
+        );
+        if (visitResponse.rowCount >= 1) {
+          const md5email = md5(req.session.user.email);
+          io.to(board.boardid).emit('board user created', {
+            userid: req.session.user.userid,
+            nickname: req.session.user.nickname,
+            email: req.session.user.email,
+            picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=identicon`,
+          });
+        }
       }
       res.status(200);
       return res.send(board);
