@@ -1,3 +1,5 @@
+// md5 for gravatar
+const md5 = require('md5');
 // For generating uuids
 const { v1: uuidv1 } = require('uuid');
 // For broadcasting success to clients
@@ -67,8 +69,12 @@ module.exports = {
         [req.session.user.userid, board.boardid],
       );
       if (visitResponse.rowCount >= 0) {
-        io.to(req.params.boardid).emit('user added', {
+        const md5email = md5(req.session.user.email);
+        io.to(board.boardid).emit('board user created', {
           userid: req.session.user.userid,
+          nickname: req.session.user.nickname,
+          email: req.session.user.email,
+          picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=identicon`,
         });
       }
       res.status(200);
@@ -189,5 +195,21 @@ module.exports = {
     // Otherwise send an empty response
     res.status(204);
     return res.send();
+  },
+  getUsers: async (req, res) => {
+    // Get all of the users for this board
+    const response = await pool.query(
+      'SELECT u.userid, u.email, u.nickname FROM boardusers bu INNER JOIN boards b ON b.boardid = bu.boardid INNER JOIN users u ON u.userid = bu.userid WHERE b.uuid = $1',
+      [req.params.boardid],
+    );
+    // Get the users from the respose
+    const users = response.rows;
+    // Add the picture to each
+    users.map((u) => {
+      const md5email = md5(u.email);
+      u.picture = `https://www.gravatar.com/avatar/${md5email}?s=256&d=identicon`;
+    });
+    // Return the users
+    return res.send(users);
   },
 };

@@ -13,6 +13,7 @@ boardsRouter.use(authCheck);
 // Map all of the routes to controller actions
 boardsRouter.get('/', boardsController.getAll);
 boardsRouter.get('/:boardid', boardsController.get);
+boardsRouter.get('/:boardid/users', boardsController.getUsers);
 boardsRouter.post('/', boardsController.create);
 boardsRouter.delete('/:boardid', boardsController.remove);
 boardsRouter.put('/:boardid', boardsController.update);

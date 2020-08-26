@@ -14,7 +14,7 @@ module.exports = {
   getAll: async (req, res) => {
     // Get all actions for the board
     const response = await pool.query(
-      'SELECT a.* FROM actions a INNER JOIN boards b ON a.boardid = b.boardid WHERE b.uuid = $1',
+      'SELECT a.*, u.nickname as owner FROM actions a INNER JOIN boards b ON a.boardid = b.boardid INNER JOIN users u ON u.userid = a.ownerid WHERE b.uuid = $1',
       [req.params.boardid],
     );
     const actions = response.rows;
@@ -24,7 +24,7 @@ module.exports = {
   getForUser: async (req, res) => {
     try {
       const response = await pool.query(
-        `SELECT a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, a.owner, b.name AS boardname, t.name as teamname, COALESCE(json_agg(au) FILTER(WHERE au.updateid IS NOT NULL), '[]') as updates FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid LEFT JOIN (SELECT actionupdates.*, users.nickname FROM actionupdates INNER JOIN users ON actionupdates.userid = users.userid) AS au ON au.actionid = a.actionid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2 GROUP BY a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, a.owner, b.name, t.name`,
+        `SELECT a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname as owner, b.name AS boardname, t.name as teamname, COALESCE(json_agg(au) FILTER(WHERE au.updateid IS NOT NULL), '[]') as updates FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid LEFT JOIN (SELECT actionupdates.*, users.nickname FROM actionupdates INNER JOIN users ON actionupdates.userid = users.userid) AS au ON au.actionid = a.actionid INNER JOIN users u ON u.userid = a.ownerid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2 GROUP BY a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname, b.name, t.name`,
         [req.session.user.userid, req.session.user.email],
       );
       res.status(200);
@@ -48,10 +48,10 @@ module.exports = {
       }
       // Try and save the card (this will also validate the data)
       const response = await pool.query(
-        'INSERT INTO actions (text, owner, status, due, closed, userid, boardid, created, updated) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now()) RETURNING *',
+        'INSERT INTO actions (text, ownerid, status, due, closed, userid, boardid, created, updated) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now()) RETURNING *',
         [
           req.body.text,
-          req.body.owner,
+          req.body.ownerid,
           req.body.status,
           req.body.due,
           req.body.closed,
@@ -60,10 +60,15 @@ module.exports = {
         ],
       );
       const [action] = response.rows;
+      const response2 = await pool.query(
+        'SELECT a.*, u.nickname as owner FROM actions a INNER JOIN users u ON u.userid = a.ownerid WHERE a.actionid = $1',
+        [action.actionid],
+      );
+      const [newAction] = response2.rows;
       // Check that the user owns this board
       res.status(200);
-      io.to(req.params.boardid).emit('action created', action);
-      return res.send(action);
+      io.to(req.params.boardid).emit('action created', newAction);
+      return res.send(newAction);
     } catch (error) {
       res.status(400);
       return res.send(error);
@@ -81,16 +86,15 @@ module.exports = {
         res.status(400);
         return res.send();
       }
-      const [originalAction] = check.rows;
       // Update the action
       const response = await pool.query(
-        'UPDATE actions SET text = $1, owner = $2, status = $3, due = $4, closed = $5, updated = now() WHERE actionid = $6 RETURNING *',
+        'UPDATE actions SET text = $1, ownerid = $2, status = $3, due = $4, closed = $5, updated = now() WHERE actionid = $6 RETURNING *',
         [
-          req.body.text || originalAction.text,
-          req.body.owner || originalAction.owner,
-          req.body.status || originalAction.status,
-          req.body.due || originalAction.due,
-          req.body.closed || originalAction.closed,
+          req.body.text,
+          req.body.ownerid,
+          req.body.status,
+          req.body.due,
+          req.body.closed,
           req.params.actionid,
         ],
       );
