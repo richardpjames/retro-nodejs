@@ -75,7 +75,7 @@ module.exports = {
             userid: req.session.user.userid,
             nickname: req.session.user.nickname,
             email: req.session.user.email,
-            picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=identicon`,
+            picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=retro`,
           });
         }
       }
@@ -209,7 +209,7 @@ module.exports = {
     // Add the picture to each
     users.map((u) => {
       const md5email = md5(u.email);
-      u.picture = `https://www.gravatar.com/avatar/${md5email}?s=256&d=identicon`;
+      u.picture = `https://www.gravatar.com/avatar/${md5email}?s=256&d=retro`;
     });
     // Return the users
     return res.send(users);

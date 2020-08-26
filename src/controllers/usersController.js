@@ -37,7 +37,7 @@ module.exports = {
         returnedUsers.push({
           userid: user.userid,
           nickname: user.nickname,
-          picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=identicon`,
+          picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=retro`,
         });
         return true;
       }),
@@ -61,7 +61,7 @@ module.exports = {
     const returnedUser = {
       userid: user.userid,
       nickname: user.nickname,
-      picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=identicon`,
+      picture: `https://www.gravatar.com/avatar/${md5email}?s=256&d=retro`,
     };
     res.status(200);
     return res.send(returnedUser);
@@ -201,7 +201,7 @@ module.exports = {
         nickname: req.session.user.nickname,
         picture: `https://www.gravatar.com/avatar/${md5(
           req.session.user.email.trim().toLowerCase(),
-        )}?s=256&d=identicon`,
+        )}?s=256&d=retro`,
       });
     }
     res.status(401);
