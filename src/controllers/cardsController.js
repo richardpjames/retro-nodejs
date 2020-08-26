@@ -97,6 +97,13 @@ module.exports = {
           req.body.parentid,
         ],
       );
+      // If the columnid is changed then update any children
+      if (req.body.columnid !== originalCard.columnid) {
+        await pool.query('UPDATE cards SET columnid = $1 WHERE parentid = $2', [
+          req.body.columnid,
+          req.params.cardid,
+        ]);
+      }
       const [updatedCard] = response.rows;
       // Get the cards based on the board and column id
       const response2 = await pool.query(
