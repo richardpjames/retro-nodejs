@@ -75,8 +75,14 @@ module.exports = {
         'INSERT INTO users (email, nickname, password, created, updated) VALUES (lower($1), $2, $3, now(), now()) RETURNING userid, email, nickname',
         [req.body.email, req.body.nickname, req.body.password],
       );
+      const [user] = result.rows;
+      // Create the users first team
+      await pool.query(
+        'INSERT INTO teams (name, userid, created, updated) VALUES ($1, $2, now(), now())',
+        ['Your Team', user.userid],
+      );
       // Send back the created user
-      return res.send(result.rows[0]);
+      return res.send(user);
     } catch (error) {
       res.status(400);
       return res.send(error);
