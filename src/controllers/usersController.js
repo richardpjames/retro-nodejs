@@ -1,3 +1,5 @@
+// For generating uuids
+const { v1: uuidv1 } = require('uuid');
 // For hasing passwords
 const bcrypt = require('bcrypt');
 // Mailgun for emails
@@ -77,9 +79,10 @@ module.exports = {
       );
       const [user] = result.rows;
       // Create the users first team
+      const uuid = uuidv1();
       await pool.query(
-        'INSERT INTO teams (name, userid, created, updated) VALUES ($1, $2, now(), now())',
-        ['Your Team', user.userid],
+        'INSERT INTO teams (name, userid, created, updated, uuid) VALUES ($1, $2, now(), now(), $3)',
+        ['Your Team', user.userid, uuid],
       );
       // Send back the created user
       return res.send(user);
