@@ -1,3 +1,5 @@
+// For generating uuids
+const { v1: uuidv1 } = require('uuid');
 // Get the connection to the database
 const postgres = require('../db/postgres');
 // Get the database pool
@@ -39,9 +41,10 @@ module.exports = {
   create: async (req, res) => {
     // Try and save the team
     try {
+      const uuid = uuidv1();
       const response = await pool.query(
-        'INSERT INTO teams (name, userid, created, updated) VALUES ($1, $2, now(), now()) RETURNING *',
-        [req.body.name, req.session.user.userid],
+        'INSERT INTO teams (name, userid, created, updated, uuid) VALUES ($1, $2, now(), now(), $3) RETURNING *',
+        [req.body.name, req.session.user.userid, uuid],
       );
       // If everything is inserted then return
       res.status(200);
