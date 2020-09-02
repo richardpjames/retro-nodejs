@@ -10,20 +10,20 @@ module.exports = {
   // Get all simply returns all teams from the database for this user
   getAll: async (req, res) => {
     const response = await pool.query(
-      `SELECT t.teamid, t.name, t.userid, t.created, t.updated, COALESCE(json_agg(tm) FILTER(WHERE tm.memberid IS NOT NULL), '[]') AS members FROM teams t LEFT JOIN teammembers tm ON t.teamid = tm.teamid WHERE t.userid = $1 or tm.email = $2 GROUP BY t.teamid, t.name, t.userid, t.created, t.updated`,
+      `SELECT DISTINCT t.* FROM teams t LEFT JOIN teammembers tm ON t.teamid = tm.teamid WHERE t.userid = $1 or tm.email = $2`,
       [req.session.user.userid, req.session.user.email],
     );
     res.status(200);
     return res.send(response.rows);
   },
-  // Get a single board from the ID in the params
+  // Get a single team from the ID in the params
   get: async (req, res) => {
     try {
+      // TODO: This should check whether the user can access the team
       // Get the team
-      const response = await pool.query(
-        'SELECT * FROM teams WHERE teamid = $1',
-        [req.params.teamid],
-      );
+      const response = await pool.query('SELECT * FROM teams WHERE uuid = $1', [
+        req.params.teamid,
+      ]);
       // If we can't find the board then send a 404
       if (response.rowCount === 0) {
         res.status(404);

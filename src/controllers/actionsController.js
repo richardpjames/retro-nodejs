@@ -24,7 +24,7 @@ module.exports = {
   getForUser: async (req, res) => {
     try {
       const response = await pool.query(
-        `SELECT a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname as owner, b.name AS boardname, t.name as teamname, COALESCE(json_agg(au) FILTER(WHERE au.updateid IS NOT NULL), '[]') as updates FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid LEFT JOIN (SELECT actionupdates.*, users.nickname FROM actionupdates INNER JOIN users ON actionupdates.userid = users.userid) AS au ON au.actionid = a.actionid INNER JOIN users u ON u.userid = a.ownerid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2 GROUP BY a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname, b.name, t.name`,
+        `SELECT a.actionid, a.ownerid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname as owner, b.name AS boardname, t.name as teamname, COALESCE(json_agg(au) FILTER(WHERE au.updateid IS NOT NULL), '[]') as updates FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid LEFT JOIN (SELECT actionupdates.*, users.nickname FROM actionupdates INNER JOIN users ON actionupdates.userid = users.userid) AS au ON au.actionid = a.actionid INNER JOIN users u ON u.userid = a.ownerid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2 GROUP BY a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname, b.name, t.name`,
         [req.session.user.userid, req.session.user.email],
       );
       res.status(200);

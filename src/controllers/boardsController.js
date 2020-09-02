@@ -18,11 +18,12 @@ module.exports = {
   getAll: async (req, res) => {
     // Get all from the database
     const response = await pool.query(
-      'SELECT DISTINCT b.* FROM boards b LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON t.teamid = tm.teamid WHERE b.userid = $1 OR t.userid = $2 OR tm.email = $3',
+      'SELECT DISTINCT b.*, COALESCE(bu.updated, b.created) AS lastviewed FROM boards b LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON t.teamid = tm.teamid LEFT JOIN boardusers bu ON b.boardid = bu.boardid AND bu.userid = $4 WHERE b.userid = $1 OR t.userid = $2 OR tm.email = $3',
       [
         req.session.user.userid,
         req.session.user.userid,
         req.session.user.email,
+        req.session.user.usierd,
       ],
     );
     res.status(200);
@@ -66,7 +67,7 @@ module.exports = {
       if (!board.locked) {
         // If all of that passed then record that the user has accessed the board
         const visitResponse = await pool.query(
-          'INSERT INTO boardusers (userid, boardid, created, updated) VALUES ($1, $2, now(), now()) ON CONFLICT ON CONSTRAINT unique_user_board DO NOTHING',
+          'INSERT INTO boardusers (userid, boardid, created, updated) VALUES ($1, $2, now(), now()) ON CONFLICT ON CONSTRAINT unique_user_board DO UPDATE SET updated = now()',
           [req.session.user.userid, board.boardid],
         );
         if (visitResponse.rowCount >= 1) {

@@ -10,6 +10,7 @@ const templatesRouter = require('./templatesRouter');
 const usersRouter = require('./usersRouter');
 const templateColumnsRouter = require('./templateColumnsRouter');
 const teamsRouter = require('./teamsRouter');
+const membersRouter = require('./membersRouter');
 const votesRouter = require('./votesRouter');
 const cardVotesRouter = require('./cardVotesRouter');
 const boardActionsRouter = require('./boardActionsRouter');
@@ -32,6 +33,7 @@ router.use('/api/templates', templatesRouter);
 router.use('/api/templates/:templateid/columns', templateColumnsRouter);
 router.use('/api/users', usersRouter);
 router.use('/api/teams', teamsRouter);
+router.use('/api/teams/:teamid/members', membersRouter);
 router.use('/api/actions', actionsRouter);
 router.use('/api/auth', authRouter);
 
