@@ -12,6 +12,7 @@ const actionsRouter = express.Router({ mergeParams: true });
 actionsRouter.use(authCheck);
 // Routes
 actionsRouter.get('/', actionsController.getForUser);
+actionsRouter.get('/:actionid/updates', actionsController.getUpdates);
 actionsRouter.post('/:actionid/updates', actionsController.addUpdate);
 actionsRouter.delete(
   '/:actionid/updates/:updateid',

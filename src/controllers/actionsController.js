@@ -24,7 +24,7 @@ module.exports = {
   getForUser: async (req, res) => {
     try {
       const response = await pool.query(
-        `SELECT a.actionid, a.ownerid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname as owner, b.name AS boardname, t.name as teamname, COALESCE(json_agg(au) FILTER(WHERE au.updateid IS NOT NULL), '[]') as updates FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid LEFT JOIN (SELECT actionupdates.*, users.nickname FROM actionupdates INNER JOIN users ON actionupdates.userid = users.userid) AS au ON au.actionid = a.actionid INNER JOIN users u ON u.userid = a.ownerid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2 GROUP BY a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname, b.name, t.name`,
+        `SELECT a.actionid, a.rank, a.ownerid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname as owner, b.name AS boardname, t.name as teamname, COALESCE(json_agg(au) FILTER(WHERE au.updateid IS NOT NULL), '[]') as updates FROM actions a INNER JOIN boards b ON a.boardid = b.boardid LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON tm.teamid = t.teamid LEFT JOIN (SELECT actionupdates.*, users.nickname FROM actionupdates INNER JOIN users ON actionupdates.userid = users.userid) AS au ON au.actionid = a.actionid INNER JOIN users u ON u.userid = a.ownerid WHERE b.userid = $1 OR t.userid = $1 OR tm.email = $2 GROUP BY a.actionid, a.text, a.status, a.due, a.closed, a.userid, a.boardid, a.created, a.updated, u.nickname, b.name, t.name`,
         [req.session.user.userid, req.session.user.email],
       );
       res.status(200);
@@ -88,7 +88,7 @@ module.exports = {
       }
       // Update the action
       const response = await pool.query(
-        'UPDATE actions SET text = $1, ownerid = $2, status = $3, due = $4, closed = $5, updated = now() WHERE actionid = $6 RETURNING *',
+        'UPDATE actions SET text = $1, ownerid = $2, status = $3, due = $4, closed = $5, rank = $7, updated = now() WHERE actionid = $6 RETURNING *',
         [
           req.body.text,
           req.body.ownerid,
@@ -96,13 +96,19 @@ module.exports = {
           req.body.due,
           req.body.closed,
           req.params.actionid,
+          req.body.rank,
         ],
       );
       const [updatedAction] = response.rows;
+      const response2 = await pool.query(
+        'SELECT a.*, u.nickname as owner FROM actions a INNER JOIN users u ON u.userid = a.ownerid WHERE a.actionid = $1',
+        [updatedAction.actionid],
+      );
+      const [returnedAction] = response2.rows;
       // Send responses
       res.status(200);
-      io.to(req.params.boardid).emit('action updated', updatedAction);
-      return res.send(updatedAction);
+      io.to(req.params.boardid).emit('action updated', returnedAction);
+      return res.send(returnedAction);
       // Return any errors back to the user
     } catch (error) {
       res.status(400);
@@ -123,7 +129,22 @@ module.exports = {
     // Send responses
     io.to(req.params.boardid).emit('action deleted', req.params.actionid);
     res.status(204);
-    return res.send();
+    return res.send({});
+  },
+  getUpdates: async (req, res) => {
+    try {
+      // Get all updates
+      const response = await pool.query(
+        'SELECT a.*, u.nickname FROM actionupdates a INNER JOIN users u ON a.userid = u.userid WHERE actionid = $1',
+        [req.params.actionid],
+      );
+      // Return the results of the query
+      res.status(200);
+      return res.send(response.rows);
+    } catch (error) {
+      res.status(400);
+      return res.send(error);
+    }
   },
   addUpdate: async (req, res) => {
     try {
@@ -137,7 +158,13 @@ module.exports = {
         res.status(400);
         return res.send();
       }
-      return res.send(response.rows[0]);
+      // Get the new action with the user information
+      const [newUpdate] = response.rows;
+      const response2 = await pool.query(
+        'SELECT a.*, u.nickname FROM actionupdates a INNER JOIN users u ON a.userid = u.userid WHERE a.updateid = $1',
+        [newUpdate.updateid],
+      );
+      return res.send(response2.rows[0]);
     } catch (error) {
       res.status(400);
       return res.send(error);

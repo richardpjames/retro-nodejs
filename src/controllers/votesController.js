@@ -75,7 +75,7 @@ module.exports = {
       // Otherwise - send the responses
       io.to(req.params.boardid).emit('vote deleted', req.params.voteid);
       res.status(204);
-      return res.send();
+      return res.send({});
     } catch (error) {
       res.status(400);
       return res.send();

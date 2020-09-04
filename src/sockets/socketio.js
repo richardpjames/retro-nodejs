@@ -17,9 +17,11 @@ module.exports = {
     io.on('connection', (socket) => {
       debug('Client connected');
       socket.on('join', (room) => {
+        debug(`Client Joining ${room}`);
         socket.join(room);
       });
       socket.on('leave', (room) => {
+        debug(`Client Leaving ${room}`);
         socket.leave(room);
       });
     });

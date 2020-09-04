@@ -134,7 +134,7 @@ module.exports = {
       // Send responses
       io.to(req.params.boardid).emit('card deleted', req.params.cardid);
       res.status(204);
-      return res.send();
+      return res.send({});
     } catch (error) {
       res.status(400);
       return res.send(error);

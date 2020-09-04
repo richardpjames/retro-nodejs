@@ -82,7 +82,7 @@ module.exports = {
       const uuid = uuidv1();
       await pool.query(
         'INSERT INTO teams (name, userid, created, updated, uuid) VALUES ($1, $2, now(), now(), $3)',
-        ['Your Team', user.userid, uuid],
+        [`${user.nickname}'s Team`, user.userid, uuid],
       );
       // Send back the created user
       return res.send(user);

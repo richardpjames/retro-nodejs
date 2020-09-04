@@ -1,9 +1,14 @@
 // For generating uuids
 const { v1: uuidv1 } = require('uuid');
+// For broadcasting success to clients
+const sockets = require('../sockets/socketio');
 // Get the connection to the database
 const postgres = require('../db/postgres');
 // Get the database pool
 const pool = postgres.pool();
+
+// Get the socket server
+const io = sockets.io();
 
 // The controller for boards
 module.exports = {
@@ -21,9 +26,10 @@ module.exports = {
     try {
       // TODO: This should check whether the user can access the team
       // Get the team
-      const response = await pool.query('SELECT * FROM teams WHERE uuid = $1', [
-        req.params.teamid,
-      ]);
+      const response = await pool.query(
+        'SELECT * FROM teams WHERE teamid = $1',
+        [req.params.teamid],
+      );
       // If we can't find the board then send a 404
       if (response.rowCount === 0) {
         res.status(404);
@@ -65,12 +71,23 @@ module.exports = {
         res.status(400);
         return res.send();
       }
+      // Find all users who would be interested in this being updated
+      const {
+        rows: ioList,
+      } = await pool.query(
+        'SELECT DISTINCT tm.email FROM teammembers tm WHERE tm.teamid = $1',
+        [req.params.teamid],
+      );
       // Get the team from the query
       const [team] = result.rows;
       // Update the team, falling back on any previous values
       const result2 = await pool.query(
-        'UPDATE teams SET name = $1, updated = now() WHERE teamid = $3 RETURNING *',
+        'UPDATE teams SET name = $1, updated = now() WHERE teamid = $2 RETURNING *',
         [req.body.name || team.name, req.params.teamid],
+      );
+      // Let any listeners know
+      ioList.map((email) =>
+        io.to(email.email).emit('team updated', result2.rows[0]),
       );
       return res.send(result2.rows[0]);
     } catch (error) {
@@ -79,6 +96,13 @@ module.exports = {
     }
   },
   remove: async (req, res) => {
+    // Find all users who would be interested in this being removed
+    const {
+      rows: ioList,
+    } = await pool.query(
+      'SELECT DISTINCT tm.email FROM teammembers tm WHERE tm.teamid = $1',
+      [req.params.teamid],
+    );
     // Remove the team (checking userid)
     const response = await pool.query(
       'DELETE FROM teams WHERE teamid = $1 AND userid = $2',
@@ -89,9 +113,13 @@ module.exports = {
       res.status(404);
       return res.send();
     }
+    // Let any listeners know
+    ioList.map((email) =>
+      io.to(email.email).emit('team deleted', req.params.teamid),
+    );
     // If all okay return 204
     res.status(204);
-    return res.send();
+    return res.send({});
   },
   addMembership: async (req, res) => {
     try {

@@ -197,7 +197,7 @@ module.exports = {
     }
     // Otherwise send an empty response
     res.status(204);
-    return res.send();
+    return res.send({});
   },
   getUsers: async (req, res) => {
     // Get all of the users for this board

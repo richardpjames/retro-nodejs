@@ -115,6 +115,6 @@ module.exports = {
     );
     io.to(req.params.boardid).emit('column deleted', req.params.columnid);
     res.status(204);
-    return res.send();
+    return res.send({});
   },
 };
