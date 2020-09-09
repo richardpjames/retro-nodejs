@@ -1,5 +1,7 @@
 // md5 for gravatar
 const md5 = require('md5');
+// For sentiment anylsis on boards
+const Sentiment = require('sentiment');
 // For generating uuids
 const { v1: uuidv1 } = require('uuid');
 // For broadcasting success to clients
@@ -11,6 +13,8 @@ const pool = postgres.pool();
 
 // Get the socket server
 const io = sockets.io();
+// Initialise sentiment
+const sentiment = new Sentiment();
 
 // The controller for boards
 module.exports = {
@@ -18,7 +22,7 @@ module.exports = {
   getAll: async (req, res) => {
     // Get all from the database
     const response = await pool.query(
-      'SELECT DISTINCT b.*, COALESCE(bu.updated, b.created) AS lastviewed FROM boards b LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON t.teamid = tm.teamid LEFT JOIN boardusers bu ON b.boardid = bu.boardid AND bu.userid = $4 WHERE b.userid = $1 OR t.userid = $2 OR tm.email = $3',
+      `SELECT DISTINCT b.*, COALESCE(bu.updated, b.created) AS lastviewed, ct.cardtext FROM boards b LEFT JOIN teams t ON b.teamid = t.teamid LEFT JOIN teammembers tm ON t.teamid = tm.teamid LEFT JOIN boardusers bu ON b.boardid = bu.boardid AND bu.userid = $4 LEFT JOIN (SELECT c2.boardid, STRING_AGG(text, ' ') AS cardtext FROM cards c INNER JOIN columns c2 ON c.columnid = c2.columnid GROUP BY c2.boardid) AS ct ON ct.boardid = b.boardid WHERE b.userid = $1 OR t.userid = $2 OR tm.email = $3`,
       [
         req.session.user.userid,
         req.session.user.userid,
@@ -26,8 +30,21 @@ module.exports = {
         req.session.user.usierd,
       ],
     );
+    const boards = response.rows;
+    // Move over each board and calculate the sentiment
+    boards.map((board) => {
+      // Initialise sentiment at zero
+      board.sentiment = 0;
+      // If there are cards and text for the board then calculate a new sentiment
+      if (board.cardtext) {
+        const sentimentResult = sentiment.analyze(board.cardtext);
+        board.sentiment = sentimentResult.comparative;
+      }
+      delete board.cardtext;
+      return null;
+    });
     res.status(200);
-    return res.send(response.rows);
+    return res.send(boards);
   },
   // Get a single board from the ID in the params
   get: async (req, res) => {
@@ -80,6 +97,21 @@ module.exports = {
           });
         }
       }
+      // Calculate sentiment for the board
+      const sentimentResponse = await pool.query(
+        `SELECT STRING_AGG(text, ' ') AS text FROM cards c INNER JOIN columns c2 ON c.columnid = c2.columnid WHERE c2.boardid = $1`,
+        [board.boardid],
+      );
+      // Calculate a sentimnent value for the board
+      let sentimentScore = 0;
+      if (sentimentResponse.rows[0].text) {
+        const sentimentResult = sentiment.analyze(
+          sentimentResponse.rows[0].text,
+        );
+        sentimentScore = sentimentResult.comparative;
+      }
+      // Attach the sentiment score to the board
+      board.sentiment = sentimentScore;
       res.status(200);
       return res.send(board);
       // If any errors, then catch and throw 500
