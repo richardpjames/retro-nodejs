@@ -163,8 +163,8 @@ module.exports = {
       await Promise.all(
         templateColumnResponse.rows.map(async (column) => {
           await pool.query(
-            'INSERT INTO columns (title, rank, boardid, created, updated) VALUES ($1, $2, $3, now(), now())',
-            [column.title, column.rank, boardid],
+            'INSERT INTO columns (title, rank, boardid, defaultcolour, created, updated) VALUES ($1, $2, $3, $4, now(), now())',
+            [column.title, column.rank, boardid, column.defaultcolour],
           );
         }),
       );

@@ -10,6 +10,10 @@ const postgres = {
   connectToServer: () => {
     pool = new Pool({
       connectionString: config.database.connectionString,
+      ssl: {
+        required: true,
+        rejectUnauthorized: false,
+      },
     });
   },
   pool: () => {
